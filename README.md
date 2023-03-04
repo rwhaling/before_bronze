@@ -1,6 +1,6 @@
 # dawn_of_bronze [7DRL 2023 edition]
 
-Dawn of Bronze is an open-world rogue like about hunting, gathering, and stealth, set in the late neolithic - most conflict is between humans (the player) and delicious animals, but an underlying theme is the transition from hunter-gatherer lifestyles to agriculture, the establishment of militarized city-states, the early domestication of horses, and the dawn of smelting.
+Dawn of Bronze is an open-world rogue like about hunting, gathering, and stealth, set in the late neolithic - most conflict is between humans (the player) and delicious animals, but an underlying theme is the transition from hunter-gatherer lifestyles to agriculture, the establishment of militarized city-states, the early domestication of horses, and the origin of smelting.
 
 ## Credits/Resources
 

@@ -11,11 +11,12 @@ import { MessageLog } from "./message-log";
 import { InputUtility } from "./input-utility";
 import { Tile, TileType } from "./tile";
 import { Map } from "./map";
+import { WorldMap } from "./mapgen/world-map";
 
 export class Game {
     private display: Display;
     private scheduler: Simple;
-    private map: Map;
+    private map: WorldMap;
     private statusLine: StatusLine;
     private messageLog: MessageLog;
 
@@ -46,7 +47,8 @@ export class Game {
         document.body.appendChild(this.display.getContainer());
 
         this.gameState = new GameState();
-        this.map = new Map(this);
+        // this.map = new Map(this);
+        this.map = new WorldMap(this);
         this.statusLine = new StatusLine(this, this.statusLinePosition, this.gameSize.width, { maxBoxes: this.maximumBoxes });
         this.messageLog = new MessageLog(this, this.actionLogPosition, this.gameSize.width, 3);
 
@@ -54,9 +56,9 @@ export class Game {
         this.mainLoop();
     }
 
-    draw(position: Point, glyph: Glyph): void {
-        let foreground = glyph.foregroundColor || this.foregroundColor;
-        let background = glyph.backgroundColor || this.backgroundColor;
+    draw(position: Point, glyph: Glyph, bg?: string, fg?: string): void {
+        let foreground = fg || glyph.foregroundColor || this.foregroundColor;
+        let background = bg || glyph.backgroundColor || this.backgroundColor;
         this.display.draw(position.x, position.y, glyph.character, foreground, background);
     }
 
@@ -149,7 +151,9 @@ export class Game {
     private drawPanel(): void {
         this.display.clear();
         this.map.draw();
-        this.draw(this.player.position, this.player.glyph);
+        let playerpos = this.player.position;
+        let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y);
+        this.draw(this.player.position, this.player.glyph, playerbg);
 
         this.statusLine.draw();
         this.messageLog.draw();

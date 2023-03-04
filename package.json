@@ -20,7 +20,11 @@
     },
     "homepage": "https://github.com/rwhaling/dawn_of_bronze#readme",
     "devDependencies": {
+        "@types/d3": "^7.4.0",
+        "@types/lodash": "^4.14.191",
         "concurrently": "^7.2.1",
+        "d3": "^6.6.2",
+        "fast-2d-poisson-disk-sampling": "^1.0.3",
         "http-server": "^14.1.0",
         "rot-js": "^2.0.3",
         "ts-loader": "^9.3.0",

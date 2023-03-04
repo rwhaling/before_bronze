@@ -3,8 +3,6 @@ import { Glyph } from "./glyph";
 
 export const enum ActorType {
     Player,
-    Pedro,
-    TinyPedro
 }
 
 export interface Actor {
