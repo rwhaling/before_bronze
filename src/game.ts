@@ -28,11 +28,11 @@ export class Game {
     private gameState: GameState;
 
     private foregroundColor = "white";
-    private backgroundColor = "black";
+    private backgroundColor = "#084081";
     private maximumBoxes = 10;
 
     constructor() {
-        this.gameSize = { width: 75, height: 25 };
+        this.gameSize = { width: 120, height: 50 };
         this.mapSize = { width: this.gameSize.width, height: this.gameSize.height - 4 };
         this.statusLinePosition = new Point(0, this.gameSize.height - 4);
         this.actionLogPosition = new Point(0, this.gameSize.height - 3);
@@ -40,7 +40,8 @@ export class Game {
         this.display = new Display({
             width: this.gameSize.width,
             height: this.gameSize.height,
-            fontSize: 20
+            fontSize: 12,
+            bg: "#084081"
         });
         document.body.appendChild(this.display.getContainer());
 
@@ -161,7 +162,7 @@ export class Game {
 
     private writeHelpMessage(): void {
         let helpMessage = [
-            `Move with numpad, search %c{${Tile.box.glyph.foregroundColor}}box%c{} with 'spacebar' or 'return'.`,
+            `Move with ASDW/QEZC, search %c{${Tile.box.glyph.foregroundColor}}box%c{} with 'spacebar' or 'return'.`,
         ];
 
         for (let index = helpMessage.length - 1; index >= 0; --index) {

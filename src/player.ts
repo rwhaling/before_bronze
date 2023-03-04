@@ -11,7 +11,7 @@ export class Player implements Actor {
     private keyMap: { [key: number]: number }
 
     constructor(private game: Game, public position: Point) {
-        this.glyph = new Glyph("@", "#ff0");
+        this.glyph = new Glyph("@", "#ff0","#32926F");
         this.type = ActorType.Player;
 
         this.keyMap = {};

@@ -1,7 +1,7 @@
 {
-    "name": "rotjs-typescript-basics",
+    "name": "dawn_of_bronze",
     "version": "1.0.0",
-    "description": "Using the rot.js library with TypeScript in a basic example.",
+    "description": "7DRL 2023 submission.",
     "main": "index.js",
     "scripts": {
         "build": "webpack",
@@ -10,15 +10,15 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Mizar999/rotjs-typescript-basics.git"
+        "url": "git+https://github.com/rwhaling/dawn_of_bronze.git"
     },
     "keywords": [],
     "author": "",
-    "license": "ISC",
+    "license": "MIT",
     "bugs": {
-        "url": "https://github.com/Mizar999/rotjs-typescript-basics/issues"
+        "url": "https://github.com/rwhaling/dawn_of_bronze"
     },
-    "homepage": "https://github.com/Mizar999/rotjs-typescript-basics#readme",
+    "homepage": "https://github.com/rwhaling/dawn_of_bronze#readme",
     "devDependencies": {
         "concurrently": "^7.2.1",
         "http-server": "^14.1.0",
