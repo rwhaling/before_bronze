@@ -10,8 +10,8 @@ import { mkBiomes, mkCells } from "./voronoi";
 
 export class WorldMap {
     private map: { [key: string]: Tile };
-    private mapSize;
-    private mapScale;
+    private mapSize: { width: number, height: number};
+    private mapScale: { width: number, height: number};
     private cells;
     private biomes;
     private _isZoomed: boolean;
@@ -35,13 +35,13 @@ export class WorldMap {
         console.log("cells",this.cells);
         console.log("biomes",this.biomes);
 
-        for (let x = 0; x < width; x+= 1) {
-            for (let y = 0; y < height; y += 1) {
+        // for (let x = 0; x < width; x+= 1) {
+        //     for (let y = 0; y < height; y += 1) {
 
-              this.map[this.coordinatesToKey(x, y)] = Tile.floor;
+        //         this.map[this.coordinatesToKey(x, y)] = Tile.floor;
                 
-            }
-        }
+        //     }
+        // }
         
         // let digger = new RotJsMap.Digger(width, height);
         // digger.create(this.diggerCallback.bind(this));
@@ -87,48 +87,55 @@ export class WorldMap {
     }
 
     isPassable(x: number, y: number): boolean {
-        return this.coordinatesToKey(x, y) in this.map;
+        return true;
+        // return this.coordinatesToKey(x, y) in this.map;
     }
 
     draw(playerpos: Point): void {
         if (!this._isZoomed) {
-            for (let key in this.map) {
-                let pos = this.keyToPoint(key);
-                let glyph = this.map[key].glyph;
-                let cell = this.cells.delaunay.find(pos.x,pos.y);
-                let bg = this.biomes[cell];
-                let fg = lighten(lighten(this.biomes[cell])).toString();
-                let noise_val = noise2(pos.x * 17.5,pos.y * 25.2);
-    
-                if (noise_val > 0.2) {
-                    bg = lighten(bg).toString();
-                } else if (noise_val < -0.2) {
-                    bg = darken(bg).toString();
+            for (let x = 0; x < this.mapSize.width; x+= 1) {
+                for (let y = 0; y < this.mapSize.height; y += 1) {
+                    let key = this.coordinatesToKey(x, y);
+                    let pos = this.keyToPoint(key);
+                    // let glyph = this.map[key].glyph;
+                    let glyph = Tile.floor.glyph;
+                    let cell = this.cells.delaunay.find(pos.x,pos.y);
+                    let bg = this.biomes[cell];
+                    let fg = lighten(lighten(this.biomes[cell])).toString();
+                    let noise_val = noise2(pos.x * 17.5,pos.y * 25.2);
+        
+                    if (noise_val > 0.2) {
+                        bg = lighten(bg).toString();
+                    } else if (noise_val < -0.2) {
+                        bg = darken(bg).toString();
+                    }
+        
+                    this.game.draw(pos, glyph, bg, fg);
                 }
-    
-                this.game.draw(pos, glyph, bg, fg);
             }    
         } else if (this._isZoomed) {
-            for (let key in this.map) {
-                let pos = this.keyToPoint(key);
-                // let scaled_pos = new Point(pos.x * this.mapScale.x, pos.y * this.mapScale.y)
-                // 0,0 in map coords = the player position at global 
-                // let scaled_x = (pos.x - x_center_off) * this.mapScale.width;
-                // let scaled_y = (pos.y - y_center_off) * this.mapScale.height;
-                let scaled_pos = new Point(this.zoomOffset.x + (pos.x / 4.0), this.zoomOffset.y + (pos.y / 3.0));
-                let glyph = this.map[key].glyph; // TODO fix
-                let cell = this.cells.delaunay.find(scaled_pos.x,scaled_pos.y);
-                let bg = this.biomes[cell];
-                let fg = lighten(lighten(this.biomes[cell])).toString();
-                let noise_val = noise2(pos.x * 17.5,pos.y * 25.2);
-    
-                if (noise_val > 0.2) {
-                    bg = lighten(bg).toString();
-                } else if (noise_val < -0.2) {
-                    bg = darken(bg).toString();
+            for (let x = 0; x < this.mapSize.width; x+= 1) {
+                for (let y = 0; y < this.mapSize.height; y += 1) {
+                    let key = this.coordinatesToKey(x, y);
+
+            // for (let key in this.map) {
+                    let pos = this.keyToPoint(key);
+                    let scaled_pos = new Point(this.zoomOffset.x + (pos.x / 4.0), this.zoomOffset.y + (pos.y / 3.0));
+                    // let glyph = this.map[key].glyph;
+                    let glyph = Tile.floor.glyph;
+                    let cell = this.cells.delaunay.find(scaled_pos.x,scaled_pos.y);
+                    let bg = this.biomes[cell];
+                    let fg = lighten(lighten(this.biomes[cell])).toString();
+                    let noise_val = noise2(pos.x * 17.5,pos.y * 25.2);
+        
+                    if (noise_val > 0.2) {
+                        bg = lighten(bg).toString();
+                    } else if (noise_val < -0.2) {
+                        bg = darken(bg).toString();
+                    }
+        
+                    this.game.draw(pos, glyph, bg, fg);
                 }
-    
-                this.game.draw(pos, glyph, bg, fg);
             }
         }
     }

@@ -176,6 +176,7 @@ export class Game {
 
     private drawPanel(): void {
         this.display.clear();
+        // console.log("player:",this.player);
         let playerpos = this.player.position;
         this.map.draw(playerpos);
         let center = new Point(Math.floor(this.mapSize.width / 2), Math.floor(this.mapSize.height / 2));
@@ -215,7 +216,7 @@ export class Game {
 
     private createBeings(): void {
         let positions = this.map.getRandomTilePositions(TileType.Floor, 1);
-        this.player = new Player(this, positions.splice(0, 1)[0]);
+        this.player = new Player(this, new Point(this.mapSize.width /2, this.mapSize.height / 2));
     }
 
 
