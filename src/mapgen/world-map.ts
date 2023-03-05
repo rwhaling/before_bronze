@@ -10,15 +10,20 @@ import { mkBiomes, mkCells } from "./voronoi";
 
 export class WorldMap {
     private map: { [key: string]: Tile };
+    private mapSize;
+    private mapScale;
     private cells;
     private biomes;
-    isZoomed: boolean;
+    private _isZoomed: boolean;
     zoomOffset: Point;
     // private noise: SimplexNoise
 
     constructor(private game: Game) {
         this.map = {};
-        this.isZoomed = false;
+        this.mapSize = game.mapSize;
+        this.mapScale = game.mapScale;
+
+        this._isZoomed = false;
         this.zoomOffset = new Point(0,0);
         // this.noise = mkSimplexNoise(Math.random);
     }
@@ -85,8 +90,8 @@ export class WorldMap {
         return this.coordinatesToKey(x, y) in this.map;
     }
 
-    draw(): void {
-        if (!this.isZoomed) {
+    draw(playerpos: Point): void {
+        if (!this._isZoomed) {
             for (let key in this.map) {
                 let pos = this.keyToPoint(key);
                 let glyph = this.map[key].glyph;
@@ -103,9 +108,13 @@ export class WorldMap {
     
                 this.game.draw(pos, glyph, bg, fg);
             }    
-        } else if (this.isZoomed) {
+        } else if (this._isZoomed) {
             for (let key in this.map) {
                 let pos = this.keyToPoint(key);
+                // let scaled_pos = new Point(pos.x * this.mapScale.x, pos.y * this.mapScale.y)
+                // 0,0 in map coords = the player position at global 
+                // let scaled_x = (pos.x - x_center_off) * this.mapScale.width;
+                // let scaled_y = (pos.y - y_center_off) * this.mapScale.height;
                 let scaled_pos = new Point(this.zoomOffset.x + (pos.x / 4.0), this.zoomOffset.y + (pos.y / 3.0));
                 let glyph = this.map[key].glyph; // TODO fix
                 let cell = this.cells.delaunay.find(scaled_pos.x,scaled_pos.y);
@@ -123,6 +132,34 @@ export class WorldMap {
             }
         }
     }
+
+    isZoomed(): Boolean {
+        return this._isZoomed;
+    }
+
+    zoomIn(playerPos: Point): void {
+        if (!this._isZoomed) {
+            console.log("zooming in at",playerPos);
+            this._isZoomed = true;
+            let newOffset = new Point(4.0 * Math.floor(playerPos.x / 4.0), 3.0 * Math.floor(playerPos.y / 3.0));
+            // buggy, TODO fix
+            let x_center_off = Math.floor(this.mapSize.width / 2) / 4.0;
+            let y_center_off = Math.floor(this.mapSize.height / 2) / 3.0;
+
+            let newPos = new Point(((playerPos.x/4.0) - newOffset.x),((playerPos.y/3.0) - newOffset.y));
+            this.zoomOffset = new Point(newOffset.x - x_center_off, newOffset.y - y_center_off);
+            console.log("old pos:",playerPos, "new offset:",newOffset, "new position:", newPos);
+        }
+    }
+
+    zoomOut(playerPos: Point): void {
+        if (this._isZoomed) {
+            console.log("zooming out at",playerPos);
+            this._isZoomed = false;
+            this.zoomOffset = new Point(0,0);            
+        }
+    }
+
 
     private coordinatesToKey(x: number, y: number): string {
         return x + "," + y;

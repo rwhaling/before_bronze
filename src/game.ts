@@ -23,7 +23,8 @@ export class Game {
     private player: Player;
 
     private gameSize: { width: number, height: number };
-    private mapSize: { width: number, height: number };
+    mapSize: { width: number, height: number };
+    mapScale: { width: number, height: number };
     private statusLinePosition: Point;
     private actionLogPosition: Point;
     private gameState: GameState;
@@ -33,8 +34,10 @@ export class Game {
     private maximumBoxes = 10;
 
     constructor() {
-        this.gameSize = { width: 120, height: 50 };
+        this.gameSize = { width: 120, height: 54 };
+        
         this.mapSize = { width: this.gameSize.width, height: this.gameSize.height - 4 };
+        this.mapScale = { width: 4, height: 3}
         this.statusLinePosition = new Point(0, this.gameSize.height - 4);
         this.actionLogPosition = new Point(0, this.gameSize.height - 3);
 
@@ -100,24 +103,28 @@ export class Game {
     getRandomTilePositions(type: TileType, quantity: number = 1): Point[] {
         return this.map.getRandomTilePositions(type, quantity);
     }
-    
+        
     toggleZoom(): void {
         let pos = this.getPlayerPosition();
-        if (this.map.isZoomed) {
-            console.log("zooming out at",pos);
-            this.map.isZoomed = false;
-            this.map.zoomOffset = new Point(0,0);
+        // TODO: factor most of this into WorldMap
+        if (this.map.isZoomed()) {
+            console.log("zooming out at ",pos);
+            this.map.zoomOut(pos);
+            // console.log("zooming out at",pos);
+            // this.map.isZoomed = false;
+            // this.map.zoomOffset = new Point(0,0);
         } else {
             console.log("zooming in at",pos);
-            this.map.isZoomed = true;
-            let newOffset = new Point(4.0 * Math.floor(pos.x / 4.0), 3.0 * Math.floor(pos.y / 3.0));
-            // buggy, TODO fix
-            // let newX = (pos.x - (3 * newOffset.x)
+            this.map.zoomIn(pos);
+            // this.map.isZoomed = true;
+            // let newOffset = new Point(4.0 * Math.floor(pos.x / 4.0), 3.0 * Math.floor(pos.y / 3.0));
+            // // buggy, TODO fix
+            // // let newX = (pos.x - (3 * newOffset.x)
 
-            let newPos = new Point(((pos.x/4.0) - newOffset.x),((pos.y/3.0) - newOffset.y));
-            this.map.zoomOffset = newOffset;
-            this.player.move(newPos);
-            console.log("old pos:",pos, "new offset:",newOffset, "new position:", newPos);
+            // let newPos = new Point(((pos.x/4.0) - newOffset.x),((pos.y/3.0) - newOffset.y));
+            // this.map.zoomOffset = newOffset;
+            // this.player.move(newPos);
+            // console.log("old pos:",pos, "new offset:",newOffset, "new position:", newPos);
         }
     }
 
@@ -169,10 +176,16 @@ export class Game {
 
     private drawPanel(): void {
         this.display.clear();
-        this.map.draw();
         let playerpos = this.player.position;
-        let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y);
-        this.draw(this.player.position, this.player.glyph, playerbg);
+        this.map.draw(playerpos);
+        let center = new Point(Math.floor(this.mapSize.width / 2), Math.floor(this.mapSize.height / 2));
+        if (this.map.isZoomed()) {
+            let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y);
+            this.draw(center, this.player.glyph, playerbg);    
+        } else {
+            let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y);
+            this.draw(this.player.position, this.player.glyph, playerbg);    
+        }
 
         this.statusLine.draw();
         this.messageLog.draw();
