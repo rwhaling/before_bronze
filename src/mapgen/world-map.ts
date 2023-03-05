@@ -12,10 +12,14 @@ export class WorldMap {
     private map: { [key: string]: Tile };
     private cells;
     private biomes;
+    isZoomed: boolean;
+    zoomOffset: Point;
     // private noise: SimplexNoise
 
     constructor(private game: Game) {
         this.map = {};
+        this.isZoomed = false;
+        this.zoomOffset = new Point(0,0);
         // this.noise = mkSimplexNoise(Math.random);
     }
 
@@ -82,27 +86,41 @@ export class WorldMap {
     }
 
     draw(): void {
-        for (let key in this.map) {
-            let pos = this.keyToPoint(key);
-            let glyph = this.map[key].glyph;
-            let cell = this.cells.delaunay.find(pos.x,pos.y);
-            let bg = this.biomes[cell];
-            let fg = lighten(lighten(this.biomes[cell])).toString();
-            // let noise_val = this.noise.noise2D(pos.x * 17.5,pos.y * 25.2);
-            let noise_val = noise2(pos.x * 17.5,pos.y * 25.2);
-
-            // let bg = this.coordinatesToKey(pos.x,pos.y)
-
-            // console.log(pos,noise_val);
-            if (noise_val > 0.2) {
-                bg = lighten(bg).toString();
-
-            } else if (noise_val < -0.2) {
-                bg = darken(bg).toString();
+        if (!this.isZoomed) {
+            for (let key in this.map) {
+                let pos = this.keyToPoint(key);
+                let glyph = this.map[key].glyph;
+                let cell = this.cells.delaunay.find(pos.x,pos.y);
+                let bg = this.biomes[cell];
+                let fg = lighten(lighten(this.biomes[cell])).toString();
+                let noise_val = noise2(pos.x * 17.5,pos.y * 25.2);
+    
+                if (noise_val > 0.2) {
+                    bg = lighten(bg).toString();
+                } else if (noise_val < -0.2) {
+                    bg = darken(bg).toString();
+                }
+    
+                this.game.draw(pos, glyph, bg, fg);
+            }    
+        } else if (this.isZoomed) {
+            for (let key in this.map) {
+                let pos = this.keyToPoint(key);
+                let scaled_pos = new Point(this.zoomOffset.x + (pos.x / 4.0), this.zoomOffset.y + (pos.y / 3.0));
+                let glyph = this.map[key].glyph; // TODO fix
+                let cell = this.cells.delaunay.find(scaled_pos.x,scaled_pos.y);
+                let bg = this.biomes[cell];
+                let fg = lighten(lighten(this.biomes[cell])).toString();
+                let noise_val = noise2(pos.x * 17.5,pos.y * 25.2);
+    
+                if (noise_val > 0.2) {
+                    bg = lighten(bg).toString();
+                } else if (noise_val < -0.2) {
+                    bg = darken(bg).toString();
+                }
+    
+                this.game.draw(pos, glyph, bg, fg);
             }
-            // console.log(pos.x,pos.y,noise_val, bg);
-
-            this.game.draw(pos, glyph, bg, fg);
         }
     }
 
@@ -113,12 +131,5 @@ export class WorldMap {
     private keyToPoint(key: string): Point {
         let parts = key.split(",");
         return new Point(parseInt(parts[0]), parseInt(parts[1]));
-    }
-
-    private diggerCallback(x: number, y: number, wall: number): void {
-        if (wall) {
-            return;
-        }
-        this.map[this.coordinatesToKey(x, y)] = Tile.floor;
     }
 }

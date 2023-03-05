@@ -100,6 +100,26 @@ export class Game {
     getRandomTilePositions(type: TileType, quantity: number = 1): Point[] {
         return this.map.getRandomTilePositions(type, quantity);
     }
+    
+    toggleZoom(): void {
+        let pos = this.getPlayerPosition();
+        if (this.map.isZoomed) {
+            console.log("zooming out at",pos);
+            this.map.isZoomed = false;
+            this.map.zoomOffset = new Point(0,0);
+        } else {
+            console.log("zooming in at",pos);
+            this.map.isZoomed = true;
+            let newOffset = new Point(4.0 * Math.floor(pos.x / 4.0), 3.0 * Math.floor(pos.y / 3.0));
+            // buggy, TODO fix
+            // let newX = (pos.x - (3 * newOffset.x)
+
+            let newPos = new Point(((pos.x/4.0) - newOffset.x),((pos.y/3.0) - newOffset.y));
+            this.map.zoomOffset = newOffset;
+            this.player.move(newPos);
+            console.log("old pos:",pos, "new offset:",newOffset, "new position:", newPos);
+        }
+    }
 
     private initializeGame(): void {
         this.display.clear();
@@ -115,7 +135,6 @@ export class Game {
 
         this.map.generateMap(this.mapSize.width, this.mapSize.height);
         this.generateBoxes();
-
         this.createBeings();
         this.scheduler = new Scheduler.Simple();
         this.scheduler.add(this.player, true);
@@ -166,7 +185,7 @@ export class Game {
 
     private writeHelpMessage(): void {
         let helpMessage = [
-            `Move with ASDW/QEZC, search %c{${Tile.box.glyph.foregroundColor}}box%c{} with 'spacebar' or 'return'.`,
+            `Move with ASDW/QEZC, search with 'spacebar' or 'return'.`,
         ];
 
         for (let index = helpMessage.length - 1; index >= 0; --index) {

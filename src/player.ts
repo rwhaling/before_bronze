@@ -29,22 +29,37 @@ export class Player implements Actor {
         return InputUtility.waitForInput(this.handleInput.bind(this));
     }
 
+    move(newPoint:Point): boolean {
+        if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {
+            return;
+        }
+        this.position = newPoint;
+        return true;
+    }
+
     private handleInput(event: KeyboardEvent): boolean {
         let validInput = false;
         let code = event.keyCode;
         if (code in this.keyMap) {
             let diff = DIRS[8][this.keyMap[code]];
             let newPoint = new Point(this.position.x + diff[0], this.position.y + diff[1]);
-            if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {
+            let moveResult = this.move(newPoint);
+            if (moveResult == true) {
+                validInput = true;
+            } else {
                 return;
             }
-            this.position = newPoint;
-            validInput = true;
-        } else if (code === KEYS.VK_RETURN || code === KEYS.VK_SPACE) {
+            // if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {
+            //     return;
+            // }
+            // this.position = newPoint;
+            // validInput = true;
+        } else if (code === KEYS.VK_SPACE) {
             this.game.checkBox(this.position.x, this.position.y);
             validInput = true;
-        } else {
-            validInput = code === KEYS.VK_NUMPAD5; // Wait a turn
+        } else if (code === KEYS.VK_RETURN) {
+            this.game.toggleZoom();
+            validInput = true
         }
         return validInput;
     }
