@@ -1,4 +1,5 @@
-import { Display, Scheduler, KEYS, RNG } from "rot-js/lib/index";
+import { Display, Scheduler, KEYS, RNG, Util } from "rot-js/lib/index";
+
 import Simple from "rot-js/lib/scheduler/simple";
 
 import { Player } from "./player";
@@ -8,9 +9,11 @@ import { Point } from "./point";
 import { Glyph } from "./glyph";
 import { StatusLine } from "./status-line";
 import { MessageLog } from "./message-log";
+import { Menu } from "./menu";
 import { InputUtility } from "./input-utility";
 import { Tile, TileType } from "./tile";
 import { WorldMap } from "./mapgen/world-map";
+import { padCenter } from "./text-utility";
 
 export class Game {
     private display: Display;
@@ -47,6 +50,13 @@ export class Game {
             bg: "#084081"
         });
         document.body.appendChild(this.display.getContainer());
+        console.log(document.body);
+        console.log(this.display.getContainer());
+        console.log(this.display);
+        this.display.getContainer().addEventListener("click", (ev) => { 
+            console.log("click",ev.layerX, ev.layerY, Math.floor(ev.layerX / 8), Math.floor(ev.layerY / 12)); 
+        });
+        // document.querySelector("#canvas").addEventListener("click", (ev) => { console.log("click",ev); });
 
         this.gameState = new GameState();
         // this.map = new Map(this);
@@ -125,6 +135,11 @@ export class Game {
             this.statusLine.boxes = 0;
         }
         this.gameState.reset();
+        this.gameState.currentMenu = new Menu(40,30, "Welcome to dawn_of bronze\n\n", false, 0, [
+            {text: "OK", result: {}},
+            {text: "MAYBE", result: {}},
+            {text: "NO", result: {}},
+        ])
 
         this.map.generateMap(this.mapSize.width * 4, this.mapSize.height * 3);
         this.generateBoxes();
@@ -138,24 +153,60 @@ export class Game {
     private async mainLoop(): Promise<any> {
         let actor: Actor;
         while (true) {
-            actor = this.scheduler.next();
-            if (!actor) {
-                break;
-            }
-
-            await actor.act();
-            if (actor.type === ActorType.Player) {
-                this.statusLine.turns += 1;
-            }
-            if (this.gameState.foundPineapple) {
-                this.statusLine.pineapples += 1;
+            if (!this.gameState.currentMenu) {
+                actor = this.scheduler.next();
+                if (!actor) {
+                    break;
+                }
+    
+                await actor.act();
+                if (actor.type === ActorType.Player) {
+                    this.statusLine.turns += 1;
+                }    
             }
 
             this.drawPanel();
 
+            if (this.gameState.currentMenu) {
+                let menu = this.gameState.currentMenu;
+                console.log("drawing menu",menu);
+                this.drawBox(40,8,35,30,"black");
+                // let t = padCenter(menu.text, 20, "");
+                let t = Util.format("%b{black}%s", menu.text)
+                this.display.drawText(45, 8, t);
+                let i = 0
+                for (let i = 0; i < menu.selections.length; i++) {
+                    let m = menu.selections[i];
+
+                    if (i == menu.currentSelection) {
+                        let t = Util.format("%b{yellow}* %s", m.text)
+                        this.display.drawText(50, 9 + i, t);                            
+                    } else {
+                        let t = Util.format("%b{black}- %s", m.text)
+                        this.display.drawText(50, 9 + i, t);
+                    }
+                }
+
+
+                await InputUtility.waitForInput(this.handleMenuInput.bind(this));
+                console.log("back to main loop");
+                this.drawPanel(); // ugly
+                // this.gameState.currentMenu = null;
+            }
+
             if (this.gameState.isGameOver()) {
                 await InputUtility.waitForInput(this.handleInput.bind(this));
                 this.initializeGame();
+            }
+        }
+    }
+
+    private drawBox(x,y,width,height,color?): void {
+        console.log("drawing box");
+        let c = color || "#FFFFFF";
+        for (let i = 0; i < width; i++) {
+            for (let j = 0; j < height; j++) {
+                this.display.draw(x + i, y + j," ",c,c);
             }
         }
     }
@@ -177,6 +228,31 @@ export class Game {
 
         this.statusLine.draw();
         this.messageLog.draw();
+    }
+
+    private handleMenuInput(event: KeyboardEvent): boolean {
+        let code = event.keyCode;
+        console.log("received menu input", code);
+        if (code === KEYS.VK_S  || code === KEYS.VK_DOWN) {
+            if (this.gameState.currentMenu) {
+                this.gameState.currentMenu.currentSelection += 1;
+                if (this.gameState.currentMenu.currentSelection >= this.gameState.currentMenu.selections.length) {
+                    this.gameState.currentMenu.currentSelection = 0;
+                }
+                return true;
+            }
+        } else if (code === KEYS.VK_W || code === KEYS.VK_UP) {
+            if (this.gameState.currentMenu) {
+                this.gameState.currentMenu.currentSelection -= 1;
+                if (this.gameState.currentMenu.currentSelection < 0) {
+                    this.gameState.currentMenu.currentSelection = this.gameState.currentMenu.selections.length - 1;
+                }
+            }
+            return true;
+        } else if (code === KEYS.VK_SPACE || code === KEYS.VK_RETURN) {
+            this.gameState.currentMenu = null;
+        }
+        return true;
     }
 
     private handleInput(event: KeyboardEvent): boolean {
