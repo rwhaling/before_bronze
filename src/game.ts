@@ -10,7 +10,6 @@ import { StatusLine } from "./status-line";
 import { MessageLog } from "./message-log";
 import { InputUtility } from "./input-utility";
 import { Tile, TileType } from "./tile";
-import { Map } from "./map";
 import { WorldMap } from "./mapgen/world-map";
 
 export class Game {
@@ -106,25 +105,12 @@ export class Game {
         
     toggleZoom(): void {
         let pos = this.getPlayerPosition();
-        // TODO: factor most of this into WorldMap
         if (this.map.isZoomed()) {
             console.log("zooming out at ",pos);
             this.map.zoomOut(pos);
-            // console.log("zooming out at",pos);
-            // this.map.isZoomed = false;
-            // this.map.zoomOffset = new Point(0,0);
         } else {
             console.log("zooming in at",pos);
             this.map.zoomIn(pos);
-            // this.map.isZoomed = true;
-            // let newOffset = new Point(4.0 * Math.floor(pos.x / 4.0), 3.0 * Math.floor(pos.y / 3.0));
-            // // buggy, TODO fix
-            // // let newX = (pos.x - (3 * newOffset.x)
-
-            // let newPos = new Point(((pos.x/4.0) - newOffset.x),((pos.y/3.0) - newOffset.y));
-            // this.map.zoomOffset = newOffset;
-            // this.player.move(newPos);
-            // console.log("old pos:",pos, "new offset:",newOffset, "new position:", newPos);
         }
     }
 
@@ -140,7 +126,7 @@ export class Game {
         }
         this.gameState.reset();
 
-        this.map.generateMap(this.mapSize.width, this.mapSize.height);
+        this.map.generateMap(this.mapSize.width * 4, this.mapSize.height * 3);
         this.generateBoxes();
         this.createBeings();
         this.scheduler = new Scheduler.Simple();
@@ -176,16 +162,17 @@ export class Game {
 
     private drawPanel(): void {
         this.display.clear();
-        // console.log("player:",this.player);
         let playerpos = this.player.position;
         this.map.draw(playerpos);
         let center = new Point(Math.floor(this.mapSize.width / 2), Math.floor(this.mapSize.height / 2));
         if (this.map.isZoomed()) {
+            let scaled_player_pos = this.map.getZoomedPlayerPos(playerpos);
             let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y);
             this.draw(center, this.player.glyph, playerbg);    
         } else {
+            let scaled_player_pos = this.map.mapToGameScale(playerpos);
             let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y);
-            this.draw(this.player.position, this.player.glyph, playerbg);    
+            this.draw(scaled_player_pos, this.player.glyph, playerbg);    
         }
 
         this.statusLine.draw();
