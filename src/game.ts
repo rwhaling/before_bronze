@@ -3,6 +3,7 @@ import { Display, Scheduler, KEYS, RNG, Util } from "rot-js/lib/index";
 import Simple from "rot-js/lib/scheduler/simple";
 
 import { Player } from "./player";
+import { Town } from "./town";
 import { GameState } from "./game-state";
 import { Actor, ActorType } from "./actor";
 import { Point } from "./point";
@@ -23,6 +24,7 @@ export class Game {
     private messageLog: MessageLog;
 
     private player: Player;
+    private town: Town;
 
     private gameSize: { width: number, height: number };
     mapSize: { width: number, height: number };
@@ -54,7 +56,10 @@ export class Game {
         console.log(this.display.getContainer());
         console.log(this.display);
         this.display.getContainer().addEventListener("click", (ev) => { 
-            console.log("click",ev.layerX, ev.layerY, Math.floor(ev.layerX / 8), Math.floor(ev.layerY / 12)); 
+            // TODO: check if zoomed
+            let worldCoords = this.map.gameToMapScale(new Point(Math.floor(ev.layerX / 8), Math.floor(ev.layerY / 12)));
+            let biome = this.map.getTileBiomeFull(worldCoords.x, worldCoords.y);
+            console.log("click",worldCoords.x, worldCoords.y, biome);
         });
         // document.querySelector("#canvas").addEventListener("click", (ev) => { console.log("click",ev); });
 
@@ -80,6 +85,23 @@ export class Game {
 
     mapIsPassable(x: number, y: number): boolean {
         return this.map.isPassable(x, y);
+    }
+
+    mapContainsEntity(x: number, y: number): Actor | undefined {
+        if (this.town.position.x === x && this.town.position.y === y) {
+            return this.town;
+        } else {
+            return
+        }
+    }
+
+    showTownMenu(): void {
+        this.gameState.currentMenu = new Menu(40,30, "Welcome to town\n\n", false, 0, [
+            {text: "SHOP", result: {}},
+            {text: "QUESTS", result: {}},
+            {text: "LEAVE", result: {}},
+        ])
+        return
     }
     
     getPlayerPosition(): Point {
@@ -135,13 +157,13 @@ export class Game {
             this.statusLine.boxes = 0;
         }
         this.gameState.reset();
-        this.gameState.currentMenu = new Menu(40,30, "Welcome to dawn_of bronze\n\n", false, 0, [
+        this.gameState.currentMenu = new Menu(40,30, "Welcome to dawn of bronze\n\n", false, 0, [
             {text: "OK", result: {}},
             {text: "MAYBE", result: {}},
             {text: "NO", result: {}},
         ])
 
-        this.map.generateMap(this.mapSize.width * 4, this.mapSize.height * 3);
+        this.map.generateMap(this.mapSize.width * 3, this.mapSize.height * 5);
         this.generateBoxes();
         this.createBeings();
         this.scheduler = new Scheduler.Simple();
@@ -217,13 +239,28 @@ export class Game {
         this.map.draw(playerpos);
         let center = new Point(Math.floor(this.mapSize.width / 2), Math.floor(this.mapSize.height / 2));
         if (this.map.isZoomed()) {
+            let scaled_town_delta = new Point(this.town.position.x - playerpos.x, this.town.position.y - playerpos.y);
+            let scaled_town_pos = new Point(center.x + scaled_town_delta.x, center.y + scaled_town_delta.y);
+
+            // let scaled_town_pos = this.map.getZoomedPlayerPos(this.town.position);
+            // console.log("town pos",this.town.position, "scaled:",scaled_town_pos);
+            let townbg = this.map.getTileBiomeFull(this.town.position.x, this.town.position.y).baseColor;
+            this.draw(scaled_town_pos, this.town.glyph, townbg);
+
             let scaled_player_pos = this.map.getZoomedPlayerPos(playerpos);
-            let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y);
+            let playerbg = this.map.getTileBiomeFull(playerpos.x,playerpos.y).baseColor;
             this.draw(center, this.player.glyph, playerbg);    
+
         } else {
+            let scaled_town_pos = this.map.mapToGameScale(this.town.position);
+            // console.log("town pos",this.town.position, "scaled:",scaled_town_pos);
+            let townbg = this.map.getTileBiomeFull(this.town.position.x, this.town.position.y).baseColor;
+            this.draw(scaled_town_pos, this.town.glyph, townbg)
+
             let scaled_player_pos = this.map.mapToGameScale(playerpos);
-            let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y);
-            this.draw(scaled_player_pos, this.player.glyph, playerbg);    
+            let playerbg = this.map.getTileBiomeFull(playerpos.x,playerpos.y).baseColor;
+            this.draw(scaled_player_pos, this.player.glyph, playerbg); 
+            
         }
 
         this.statusLine.draw();
@@ -279,7 +316,13 @@ export class Game {
 
     private createBeings(): void {
         let positions = this.map.getRandomTilePositions(TileType.Floor, 1);
-        this.player = new Player(this, new Point(this.mapSize.width /2, this.mapSize.height / 2));
+        let startingBiome = this.map.biomes.find( i => i.name == "lightForest");
+        let startingPoint = this.map.cells.points[startingBiome.cell]
+        console.log("starting in biome ",startingBiome, startingPoint);
+
+        this.player = new Player(this, new Point(startingPoint[0],startingPoint[1]));
+        // spawn town
+        this.town = new Town(this, new Point(startingPoint[0] + 3,startingPoint[1]));
     }
 
 

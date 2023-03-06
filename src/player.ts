@@ -30,6 +30,16 @@ export class Player implements Actor {
     }
 
     move(newPoint:Point): boolean {
+        if (this.game.mapContainsEntity(newPoint.x, newPoint.y)) {
+            let actor = this.game.mapContainsEntity(newPoint.x, newPoint.y);
+            console.log("entering tile with actor, ",actor);
+            if (actor.type === ActorType.NPC) {
+                console.log("entering town");
+
+                this.game.showTownMenu();
+                return true;
+            }
+        }
         if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {
             return;
         }

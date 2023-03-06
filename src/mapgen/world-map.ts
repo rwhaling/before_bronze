@@ -6,15 +6,15 @@ import { Point } from "../point";
 import { noise2 } from "./perlin";
 // import { SimplexNoise, mkSimplexNoise } from "./simplex";
 import { lighten, darken } from "../color"
-import { mkBiomes, mkCells } from "./voronoi";
+import { Biome, mkBiomes, mkCells } from "./voronoi";
 
 export class WorldMap {
     private map: { [key: string]: Tile };
     private mapSize: { width: number, height: number};
     private mapScale: { width: number, height: number};
     private fullMapSize;
-    private cells;
-    private biomes;
+    cells;
+    biomes: Array<Biome>;
     private _isZoomed: boolean;
     zoomOffset: Point;
     // private noise: SimplexNoise
@@ -74,12 +74,25 @@ export class WorldMap {
     }
 
     getTileType(x: number, y: number): TileType {
-        return this.map[this.coordinatesToKey(x, y)].type;
+        // return this.map[this.coordinatesToKey(x, y)].type;
+        let cell = this.cells.delaunay.find(x,y);
+        let biome = this.biomes[cell];
+        if (biome.isOcean() || biome.isMountains()) {
+            return TileType.Blank;
+        } else {
+            return TileType.Floor;
+        }
     }
+
+    getTileBiomeFull(x: number, y: number): Biome {
+        let cell = this.cells.delaunay.find(x,y);
+        return this.biomes[cell];
+    }
+
 
     getTileBiome(x: number, y: number): string {
         let cell = this.cells.delaunay.find(x,y);
-        let bg = this.biomes[cell];
+        let bg = this.biomes[cell].baseColor;
         let noise_val = noise2(x * 17.5,y * 25.2);
         if (noise_val > 0.2) {
             bg = lighten(bg).toString();
@@ -92,8 +105,14 @@ export class WorldMap {
     }
 
     isPassable(x: number, y: number): boolean {
-        return true;
-        // return this.coordinatesToKey(x, y) in this.map;
+        let cell = this.cells.delaunay.find(x,y);
+        let biome = this.biomes[cell];
+
+        if (biome.isOcean() || biome.isMountains()) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     draw(playerpos: Point): void {
@@ -104,14 +123,19 @@ export class WorldMap {
                     let screen_pos = new Point(x,y);
                     let map_pos = this.gameToMapScale(screen_pos);
                     // let glyph = this.map[key].glyph;
-                    let glyph = Tile.floor.glyph;
                     let x_noise = 10 * noise2(100 + map_pos.x/ 10, 100 + map_pos.y / 13);
                     let y_noise = 10 * noise2(200 + map_pos.x/ 10, 200 + map_pos.y / 13);
                     let cell = this.cells.delaunay.find(map_pos.x + x_noise,map_pos.y + y_noise);
 
+                    let biome = this.biomes[cell];
+                    let glyph = Tile.floor.glyph;
+                    if (biome.isOcean() || biome.isMountains()) {
+                        glyph = Tile.blank.glyph;
+                    }
+
                     // let cell = this.cells.delaunay.find(map_pos.x,map_pos.y);
-                    let bg = this.biomes[cell];
-                    let fg = lighten(lighten(this.biomes[cell])).toString();
+                    let bg = this.biomes[cell].baseColor;
+                    let fg = lighten(lighten(this.biomes[cell].baseColor)).toString();
                     let noise_val = noise2(screen_pos.x * 17.5,screen_pos.y * 25.2);
         
                     if (noise_val > 0.2) {
@@ -137,12 +161,20 @@ export class WorldMap {
                     // let pos = this.keyToPoint(key);
                     // let scaled_pos = new Point(this.zoomOffset.x + (pos.x / 4.0), this.zoomOffset.y + (pos.y / 3.0));
                     // let glyph = this.map[key].glyph;
-                    let glyph = Tile.floor.glyph;
+                    // let glyph = Tile.floor.glyph;
                     let x_noise = 10 * noise2(100 + map_pos.x/ 10, 100 + map_pos.y / 13);
                     let y_noise = 10 * noise2(200 + map_pos.x/ 10, 200 + map_pos.y / 13);
                     let cell = this.cells.delaunay.find(map_pos.x + x_noise,map_pos.y + y_noise);
-                    let bg = this.biomes[cell];
-                    let fg = lighten(lighten(this.biomes[cell])).toString();
+
+                    let biome = this.biomes[cell];
+                    let glyph = Tile.floor.glyph;
+                    if (biome.isOcean() || biome.isMountains()) {
+                        glyph = Tile.blank.glyph;
+                    }
+
+
+                    let bg = this.biomes[cell].baseColor;
+                    let fg = lighten(lighten(this.biomes[cell].baseColor)).toString();
                     let noise_val = noise2(map_pos.x * 17.5,map_pos.y * 25.2);
         
                     if (noise_val > 0.2) {

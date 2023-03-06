@@ -3,7 +3,42 @@ import * as d3 from "d3";
 import * as _ from "lodash";
 import * as mypoisson from "./poisson";
 
-const poisson = require('fast-2d-poisson-disk-sampling');
+// const poisson = require('fast-2d-poisson-disk-sampling');
+
+export class Biome {
+  name: string;
+  baseColor: string;
+  cell: number;
+  neighbors: Array<number>;
+
+  constructor(name:string, baseColor: string, cell: number, neighbors: Array<number>) {
+      this.name = name;
+      this.baseColor = baseColor;
+      this.cell = cell;
+      this.neighbors = neighbors;
+  }
+
+  isOcean(): boolean {
+      return this.name === "ocean" || this.name === "shallowOcean" || this.name === "deepOcean";
+  }
+
+  isForest(): boolean {
+      return this.name === "lightForest" || this.name === "darkForest";
+  }
+
+  isGrassland(): boolean {
+      return this.name === "grassland" || this.name === "scrubland";
+  }
+
+  isWetland(): boolean {
+      return this.name === "wetland";
+  }
+
+  isMountains(): boolean { 
+      return this.name === "hills" || this.name === "mountains";
+  }
+}
+
 
 export const mkCells = (w,h) => {
     let rng = d3.randomLcg();
@@ -49,7 +84,7 @@ export const mkBiomes = (geometry,width,height) => {
   
     let peaks = [];
     let underwater = [];
-    let tri_colors = [];
+    let tri_colors: Array<Biome> = [];
     let on_border = [];
   
     let all_seas = [];
@@ -81,22 +116,22 @@ export const mkBiomes = (geometry,width,height) => {
           all_seas.push(i);
           west_sea.push(i);
           on_border[i] = true;
-          tri_colors[i] = d3.interpolateBlues(d3.randomUniform.source(rng)(0.5,1.0)());
+          tri_colors[i] = new Biome("ocean",d3.interpolateBlues(d3.randomUniform.source(rng)(0.5,1.0)()),i,[]);
         } else if (edge[0][1] === 0.0 && edge[1][1] === 0.0) {
           all_seas.push(i);
           north_sea.push(i);
           on_border[i] = true;                
-          tri_colors[i] = d3.interpolateBlues(d3.randomUniform.source(rng)(0.5,1.0)());
+          tri_colors[i] = new Biome("ocean",d3.interpolateBlues(d3.randomUniform.source(rng)(0.5,1.0)()),i,[]);
         } else if (edge[0][0] === width && edge[1][0] === width) {
           all_seas.push(i);
           east_sea.push(i);
           on_border[i] = true;                
-          tri_colors[i] = d3.interpolateBlues(d3.randomUniform.source(rng)(0.5,1.0)());
+          tri_colors[i] = new Biome("ocean",d3.interpolateBlues(d3.randomUniform.source(rng)(0.5,1.0)()),i,[]);
         } else if (edge[0][1] === height && edge[1][1] == height) {
           all_seas.push(i);
           south_sea.push(i);
           on_border[i] = true;        
-          tri_colors[i] = d3.interpolateBlues(d3.randomUniform.source(rng)(0.5,1.0)());
+          tri_colors[i] = new Biome("ocean",d3.interpolateBlues(d3.randomUniform.source(rng)(0.5,1.0)()),i,[]);
         }      
       }
     }
@@ -113,27 +148,28 @@ export const mkBiomes = (geometry,width,height) => {
     let east_coast = [];
     let south_coast = [];
     let corners = [];
-  
+ 
     for (let i of all_seas) {
-      for (let j of geometry.voronoi.neighbors(i)) {
+      console.log("checking coasts on sea:",i,Array.from(geometry.voronoi.neighbors(i)));
+      for (let j of Array.from(geometry.voronoi.neighbors(i))) {
         if (!all_seas.includes(j)) {
           all_coasts.push(j);
           if (west_sea.includes(i)) {
             console.log("west coast: ",j);
             west_coast.push(j);
-            tri_colors[j] = "red";
+            // tri_colors[j] = "red";
           } else if (north_sea.includes(i)) {
             console.log("north coast: ",j);
             north_coast.push(j); 
-            tri_colors[j] = "orange";
+            // tri_colors[j] = "orange";
           } else if (east_sea.includes(i)) {
             console.log("east coast: ",j);
             east_coast.push(j);
-            tri_colors[j] = "yellow";
+            // tri_colors[j] = "yellow";
           } else if (south_sea.includes(i)) {
             console.log("south coast: ",j);          
             south_coast.push(j);
-            tri_colors[j] = "magenta";
+            // tri_colors[j] = "magenta";
           }
         }
       }
@@ -156,10 +192,12 @@ export const mkBiomes = (geometry,width,height) => {
     }
   
     for (let i of corners) {
-      tri_colors[i] = "violet";
+      // tri_colors[i] = "violet";
     }
   
     let sea_options = [west_sea, north_sea, east_sea, south_sea];
+    console.log("seas:",sea_options);
+    console.log("coasts:",all_coasts);
     let coast_options = [west_coast, north_coast, east_coast, south_coast];
     let opposite_options = [east_coast, south_coast, west_coast, north_coast];
     let remaining_coasts = [[north_coast, south_coast], [east_coast, west_coast], [north_coast, south_coast], [east_coast, west_coast]];
@@ -180,29 +218,31 @@ export const mkBiomes = (geometry,width,height) => {
     let near_coast = select_remaining[last_selection];    
   
     for (let i of select_sea) {
-      tri_colors[i] = chocolate[d3.randomInt.source(rng)(0,4)()];
+      tri_colors[i] = new Biome("mountains",chocolate[d3.randomInt.source(rng)(0,4)()],i,[]);
     }
   
     for (let i of select_coast) {
-      tri_colors[i] = d3.interpolateYlOrBr(d3.randomUniform.source(rng)()());
+      // tri_colors[i] = new Biome("hills",d3.interpolateYlOrBr(d3.randomUniform.source(rng)()()),i,[]);
+      tri_colors[i] = new Biome("plains",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);      
     }
   
     for (let i of select_opposite) {
-      tri_colors[i] = d3.interpolateGnBu(d3.randomUniform.source(rng)()());
+      // tri_colors[i] = new Biome("wetlands",d3.interpolateGnBu(d3.randomUniform.source(rng)()()),i,[]);
+      tri_colors[i] = new Biome("plains",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);      
     }
   
     for (let i of far_coast) {
-      tri_colors[i] = dark_minty[d3.randomInt.source(rng)(0,4)()];
+      tri_colors[i] = new Biome("darkForest",dark_minty[d3.randomInt.source(rng)(0,4)()],i,[]);
     }
   
     for (let i of near_coast) {
-      tri_colors[i] = light_minty[d3.randomInt.source(rng)(0,4)()];    
+      tri_colors[i] = new Biome("lightForest",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);    
     }
   
     for (let i = 0; i < geometry.n_cells; i++) {
       if (!all_seas.includes(i) && !all_coasts.includes(i)) {
         interior.push(i);
-        tri_colors[i] = light_minty[d3.randomInt.source(rng)(0,4)()];      
+        tri_colors[i] = new Biome("plains",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);      
       }
     }
   
