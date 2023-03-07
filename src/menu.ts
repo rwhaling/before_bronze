@@ -1,9 +1,9 @@
 interface MenuResult {
-    newSelection: number;
-    closeMenu: boolean;
-    newMenu: Menu;
-    initializeGame: boolean;
-    endGame: boolean;
+    // newSelection: number;
+    // closeMenu: boolean;
+    // newMenu: Menu;
+    // initializeGame: boolean;
+    // endGame: boolean;
 }
 
 interface MenuItem {
@@ -17,9 +17,9 @@ export class Menu {
     text: string;
     escapable: boolean;
     currentSelection: number;
-    selections: [MenuItem];
+    selections: Array<MenuItem>;
 
-    constructor(width: number, height: number, text: string, escapable: boolean, currentSelection: number, selections: [MenuItem]) {
+    constructor(width: number, height: number, text: string, escapable: boolean, currentSelection: number, selections: Array<MenuItem>) {
         this.width = width;
         this.height = height;
         this.text = text;

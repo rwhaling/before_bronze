@@ -1,9 +1,11 @@
 import { KEYS, DIRS } from "rot-js";
-import { Game } from "./game";
+import { Game } from "../game";
 import { Actor, ActorType } from "./actor";
-import { Point } from "./point";
-import { Glyph } from "./glyph";
-import { InputUtility } from "./input-utility";
+import { Critter } from "./critter";
+
+import { Point } from "../point";
+import { Glyph } from "../glyph";
+import { InputUtility } from "../input-utility";
 
 export class Player implements Actor {
     glyph: Glyph;
@@ -38,6 +40,9 @@ export class Player implements Actor {
 
                 this.game.showTownMenu();
                 return true;
+            } else if (actor.type === ActorType.Critter) {
+                let critter = actor as Critter;
+                console.log("caught critter ", critter.name);
             }
         }
         if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {

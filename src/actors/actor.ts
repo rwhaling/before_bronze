@@ -1,9 +1,10 @@
-import { Point } from "./point";
-import { Glyph } from "./glyph";
+import { Point } from "../point";
+import { Glyph } from "../glyph";
 
 export const enum ActorType {
     Player,
     NPC,
+    Spawner,
     Critter,
     Enemy
 }

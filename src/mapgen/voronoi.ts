@@ -8,12 +8,16 @@ import * as mypoisson from "./poisson";
 export class Biome {
   name: string;
   baseColor: string;
+  bg: string;
+  fg: string;
   cell: number;
   neighbors: Array<number>;
 
   constructor(name:string, baseColor: string, cell: number, neighbors: Array<number>) {
       this.name = name;
       this.baseColor = baseColor;
+      this.bg = baseColor;
+      this.fg = baseColor;
       this.cell = cell;
       this.neighbors = neighbors;
   }

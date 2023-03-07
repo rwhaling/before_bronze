@@ -2,10 +2,10 @@ import { Display, Scheduler, KEYS, RNG, Util } from "rot-js/lib/index";
 
 import Simple from "rot-js/lib/scheduler/simple";
 
-import { Player } from "./player";
-import { Town } from "./town";
+import { Player } from "./actors/player";
+import { Town } from "./actors/town";
 import { GameState } from "./game-state";
-import { Actor, ActorType } from "./actor";
+import { Actor, ActorType } from "./actors/actor";
 import { Point } from "./point";
 import { Glyph } from "./glyph";
 import { StatusLine } from "./status-line";
@@ -14,7 +14,7 @@ import { Menu } from "./menu";
 import { InputUtility } from "./input-utility";
 import { Tile, TileType } from "./tile";
 import { WorldMap } from "./mapgen/world-map";
-import { padCenter } from "./text-utility";
+import { Spawner } from "./actors/spawner";
 
 export class Game {
     private display: Display;
@@ -25,6 +25,7 @@ export class Game {
 
     private player: Player;
     private town: Town;
+    private spawner: Spawner;
 
     private gameSize: { width: number, height: number };
     mapSize: { width: number, height: number };
@@ -57,9 +58,9 @@ export class Game {
         console.log(this.display);
         this.display.getContainer().addEventListener("click", (ev) => { 
             // TODO: check if zoomed
-            let worldCoords = this.map.gameToMapScale(new Point(Math.floor(ev.layerX / 8), Math.floor(ev.layerY / 12)));
-            let biome = this.map.getTileBiomeFull(worldCoords.x, worldCoords.y);
-            console.log("click",worldCoords.x, worldCoords.y, biome);
+            let worldCoords = this.map.gameToMapScale(new Point(Math.floor(ev.offsetX / 8), Math.floor(ev.offsetY / 12)));
+            let biome = this.map.getTileBiome(worldCoords.x, worldCoords.y);
+            console.log("click", ev.offsetX, ev.offsetX, worldCoords.x, worldCoords.y, biome);
         });
         // document.querySelector("#canvas").addEventListener("click", (ev) => { console.log("click",ev); });
 
@@ -91,6 +92,11 @@ export class Game {
         if (this.town.position.x === x && this.town.position.y === y) {
             return this.town;
         } else {
+            for (let spawn of this.spawner.spawns) {
+                if (spawn.position.x === x && spawn.position.y === y) {
+                    return spawn;
+                }
+            }
             return
         }
     }
@@ -168,8 +174,17 @@ export class Game {
         this.createBeings();
         this.scheduler = new Scheduler.Simple();
         this.scheduler.add(this.player, true);
+        this.scheduler.add(this.spawner, true);
 
         this.drawPanel();
+    }
+
+    addActor(a:Actor) {
+        this.scheduler.add(a,true);
+    }
+
+    removeActor(a:Actor) {
+        this.scheduler.remove(a);
     }
 
     private async mainLoop(): Promise<any> {
@@ -180,14 +195,20 @@ export class Game {
                 if (!actor) {
                     break;
                 }
-    
+                if (actor.type === ActorType.Player ) {
+                    this.drawPanel();
+                }         
                 await actor.act();
                 if (actor.type === ActorType.Player) {
                     this.statusLine.turns += 1;
-                }    
+                    this.drawPanel();
+                } else if (actor.type === ActorType.Spawner) {
+                    console.log("spawner turn done, skipping rendering");
+                    continue;
+                }
             }
 
-            this.drawPanel();
+            // this.drawPanel();
 
             if (this.gameState.currentMenu) {
                 let menu = this.gameState.currentMenu;
@@ -242,23 +263,31 @@ export class Game {
             let scaled_town_delta = new Point(this.town.position.x - playerpos.x, this.town.position.y - playerpos.y);
             let scaled_town_pos = new Point(center.x + scaled_town_delta.x, center.y + scaled_town_delta.y);
 
+            // let mobs = this.spawner.spawn
+
+            for (let s of this.spawner.spawns) {
+                let scaled_spawn_delta = new Point(s.position.x - playerpos.x, s.position.y - playerpos.y);
+                let scaled_spawn_pos = new Point(center.x + scaled_spawn_delta.x, center.y + scaled_spawn_delta.y);
+                let spawn_bg = this.map.getTileBiome(s.position.x, s.position.y).baseColor;
+                this.draw(scaled_spawn_pos, s.glyph, spawn_bg);
+            }
             // let scaled_town_pos = this.map.getZoomedPlayerPos(this.town.position);
             // console.log("town pos",this.town.position, "scaled:",scaled_town_pos);
-            let townbg = this.map.getTileBiomeFull(this.town.position.x, this.town.position.y).baseColor;
+            let townbg = this.map.getTileBiome(this.town.position.x, this.town.position.y).baseColor;
             this.draw(scaled_town_pos, this.town.glyph, townbg);
 
             let scaled_player_pos = this.map.getZoomedPlayerPos(playerpos);
-            let playerbg = this.map.getTileBiomeFull(playerpos.x,playerpos.y).baseColor;
+            let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y).baseColor;
             this.draw(center, this.player.glyph, playerbg);    
 
         } else {
             let scaled_town_pos = this.map.mapToGameScale(this.town.position);
             // console.log("town pos",this.town.position, "scaled:",scaled_town_pos);
-            let townbg = this.map.getTileBiomeFull(this.town.position.x, this.town.position.y).baseColor;
-            this.draw(scaled_town_pos, this.town.glyph, townbg)
+            let townbg = this.map.getTileBiome(this.town.position.x, this.town.position.y).baseColor;
+            this.draw(scaled_town_pos, this.town.glyph, townbg);
 
             let scaled_player_pos = this.map.mapToGameScale(playerpos);
-            let playerbg = this.map.getTileBiomeFull(playerpos.x,playerpos.y).baseColor;
+            let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y).baseColor;
             this.draw(scaled_player_pos, this.player.glyph, playerbg); 
             
         }
@@ -320,9 +349,10 @@ export class Game {
         let startingPoint = this.map.cells.points[startingBiome.cell]
         console.log("starting in biome ",startingBiome, startingPoint);
 
-        this.player = new Player(this, new Point(startingPoint[0],startingPoint[1]));
+        this.player = new Player(this, new Point(Math.floor(startingPoint[0]),Math.floor(startingPoint[1])));
         // spawn town
-        this.town = new Town(this, new Point(startingPoint[0] + 3,startingPoint[1]));
+        this.town = new Town(this, new Point(Math.floor(startingPoint[0]) + 3,Math.floor(startingPoint[1])));
+        this.spawner = new Spawner(this, 5, 5);
     }
 
 
