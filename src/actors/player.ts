@@ -43,6 +43,7 @@ export class Player implements Actor {
             } else if (actor.type === ActorType.Critter) {
                 let critter = actor as Critter;
                 console.log("caught critter ", critter.name);
+                this.game.spawner.despawn(actor);
             }
         }
         if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {

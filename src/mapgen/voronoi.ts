@@ -39,7 +39,7 @@ export class Biome {
   }
 
   isMountains(): boolean { 
-      return this.name === "hills" || this.name === "mountains";
+      return this.name === "mountains";
   }
 }
 

@@ -25,7 +25,7 @@ export class Game {
 
     private player: Player;
     private town: Town;
-    private spawner: Spawner;
+    spawner: Spawner;
 
     private gameSize: { width: number, height: number };
     mapSize: { width: number, height: number };
