@@ -16,6 +16,7 @@ import { InputUtility } from "./input-utility";
 import { Tile, TileType } from "./tile";
 import { WorldMap } from "./mapgen/world-map";
 import { Spawner } from "./actors/spawner";
+import * as _ from "lodash";
 
 export class Game {
     private display: Display;
@@ -120,35 +121,18 @@ export class Game {
     }
 
     showTownMenu(): void {
-        this.gameState.currentMenu = new Menu(40,30, "Welcome to town\n\n", false, 0, [
-            {text: "SHOP", result: {}},
-            {text: "QUESTS", result: {}},
-            {text: "LEAVE", result: {}},
-        ])
+        console.log("loot:", _.countBy( this.player.loot));
+        this.gameState.currentMenu = this.town.getTownMenu();
+        // this.gameState.currentMenu = new Menu(40,30, "Welcome to town\n\n", 0, [
+        //     {text: "SHOP", result: {}},
+        //     {text: "QUESTS", result: {}},
+        //     {text: "LEAVE", result: {}},
+        // ], (m) => {console.log("callback?",m); return true});
         return
     }
     
     getPlayerPosition(): Point {
         return this.player.position;
-    }
-
-    checkBox(x: number, y: number): void {
-        switch (this.map.getTileType(x, y)) {
-            case Tile.box.type:
-                this.map.setTile(x, y, Tile.searchedBox);
-                this.statusLine.boxes += 1;
-                break;
-            case Tile.searchedBox.type:
-                this.map.setTile(x, y, Tile.destroyedBox);
-                this.messageLog.appendText("You destroy this box!");
-                break;
-            case Tile.destroyedBox.type:
-                this.messageLog.appendText("This box is already destroyed.");
-                break;
-            default:
-                this.messageLog.appendText("There is no box here!");
-                break;
-        }
     }
 
     getTileType(x: number, y: number): TileType {
@@ -177,17 +161,15 @@ export class Game {
         if (!this.gameState.isGameOver() || this.gameState.doRestartGame()) {
             this.resetStatusLine();
             this.writeHelpMessage();
-        } else {
-            this.statusLine.boxes = 0;
         }
         this.gameState.reset();
-        this.gameState.currentMenu = new Menu(40,30, "Welcome to dawn of bronze\n\n", false, 0, [
-            {text: "OK", result: {}},
-            {text: "MAYBE", result: {}},
-            {text: "NO", result: {}},
-        ])
+        // this.gameState.currentMenu = new Menu(40,30, "Welcome to dawn of bronze\n\n", false, 0, [
+        //     {text: "OK", result: {}},
+        //     {text: "MAYBE", result: {}},
+        //     {text: "NO", result: {}},
+        // ])
 
-        this.map.generateMap(this.mapSize.width * 3, this.mapSize.height * 5);
+        this.map.generateMap(this.mapSize.width * 3, this.mapSize.height * 4);
         // this.generateBoxes();
 
         // let startingBiome = this.map.biomes.find( i => i.name === "lightForest");
@@ -348,7 +330,9 @@ export class Game {
             }
             return true;
         } else if (code === KEYS.VK_SPACE || code === KEYS.VK_RETURN) {
+            let m = this.gameState.currentMenu;
             this.gameState.currentMenu = null;
+            m.invokeCallback();
         }
         return true;
     }
@@ -370,6 +354,5 @@ export class Game {
 
     private resetStatusLine(): void {
         this.statusLine.reset();
-        this.statusLine.maxBoxes = this.maximumBoxes;
     }
 }

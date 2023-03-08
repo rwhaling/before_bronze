@@ -15,6 +15,8 @@ export class Player implements Actor {
     minNoise: number;
     maxNoise: number;
     hidden: boolean;
+    food: number;
+    maxFood: number; 
     loot: Array<String>;
     private keyMap: { [key: number]: number };
     // TODO: Action interface, availability, cooldown
@@ -26,7 +28,9 @@ export class Player implements Actor {
         this.minNoise = 0;
         this.maxNoise = 25;
         this.noise = 0;
-        this.loot = [];
+        this.food = 20;
+        this.maxFood = 50;
+        this.loot = [];        
 
         this.keyMap = {};
         this.keyMap[KEYS.VK_W] = 0; // up
@@ -141,9 +145,9 @@ export class Player implements Actor {
     }
 
     private showHelpMenu(): void {
-        this.game.gameState.currentMenu = new Menu(40,30, "Help menu TBD\n\n", false, 0, [
+        this.game.gameState.currentMenu = new Menu(40,30, "Help menu TBD\n\n", 0, [
             {text: "OK", result: {}},
-        ])
+        ], (m) => { console.log("help menu callback?"); return true});
         return
     
     }

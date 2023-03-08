@@ -219,14 +219,14 @@ export class WorldMap {
             console.log("zooming in at",playerPos);
             this._isZoomed = true;
 
-            let newOffset = new Point(4.0 * Math.floor(playerPos.x / 4.0), 3.0 * Math.floor(playerPos.y / 3.0));
-            // buggy, TODO fix
-            let x_center_off = Math.floor(this.mapSize.width / 2) / 4.0;
-            let y_center_off = Math.floor(this.mapSize.height / 2) / 3.0;
+            // let newOffset = new Point(4.0 * Math.floor(playerPos.x / 4.0), 3.0 * Math.floor(playerPos.y / 3.0));
+            // // buggy, TODO fix
+            // let x_center_off = Math.floor(this.mapSize.width / 2) / 4.0;
+            // let y_center_off = Math.floor(this.mapSize.height / 2) / 3.0;
 
-            // let newPos = new Point(((playerPos.x/4.0) - newOffset.x),((playerPos.y/3.0) - newOffset.y));
-            this.zoomOffset = new Point(newOffset.x - x_center_off, newOffset.y - y_center_off);
-            console.log("old pos:",playerPos, "new offset:",newOffset);
+            // // let newPos = new Point(((playerPos.x/4.0) - newOffset.x),((playerPos.y/3.0) - newOffset.y));
+            // this.zoomOffset = new Point(newOffset.x - x_center_off, newOffset.y - y_center_off);
+            // console.log("old pos:",playerPos, "new offset:",newOffset);
         }
     }
 
@@ -234,7 +234,7 @@ export class WorldMap {
         if (this._isZoomed) {
             console.log("zooming out at",playerPos);
             this._isZoomed = false;
-            this.zoomOffset = new Point(0,0);            
+            // this.zoomOffset = new Point(0,0);            
         }
     }
 

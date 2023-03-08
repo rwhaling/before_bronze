@@ -11,21 +11,17 @@ interface MenuItem {
     result: MenuResult;
 }
 
-export class Menu {
-    width: number;
-    height: number;
-    text: string;
-    escapable: boolean;
-    currentSelection: number;
-    selections: Array<MenuItem>;
+type MenuCallback = (Menu) => boolean;
 
-    constructor(width: number, height: number, text: string, escapable: boolean, currentSelection: number, selections: Array<MenuItem>) {
-        this.width = width;
-        this.height = height;
-        this.text = text;
-        this.escapable = escapable;
-        this.currentSelection = currentSelection;
-        this.selections = selections;
+export class Menu {
+    constructor(private width: number, private height: number, public text: string, public currentSelection: number, public selections: Array<MenuItem>, private callback?: MenuCallback) {
+
+    }
+
+    invokeCallback(): boolean {
+        if (this.callback) {
+            return this.callback(this);
+        }
     }
 
     draw(): void {
