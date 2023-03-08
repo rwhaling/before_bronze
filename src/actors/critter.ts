@@ -78,7 +78,7 @@ export class Critter implements Actor {
         if (dist <= 3) {
             if (this.playerVis !== Vis.Seen) {
                 let r = RNG.getPercentage();
-                if (r <= player.noise) {
+                if (r <= player.noise && !player.hidden) {
                     this.playerVis = Vis.Seen;
                     this.glyph.foregroundColor = "yellow";
                     this.game.messageLog.appendText("the " + this.name + " sees you and flees!");

@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 // import * as poisson from "fast-2d-poisson-disk-sampling";
 import * as _ from "lodash";
+import { Point } from "../point";
 import * as mypoisson from "./poisson";
 
 // const poisson = require('fast-2d-poisson-disk-sampling');
@@ -11,6 +12,7 @@ export class Biome {
   bg: string;
   fg: string;
   cell: number;
+  center: Point;
   neighbors: Array<number>;
 
   constructor(name:string, baseColor: string, cell: number, neighbors: Array<number>) {
@@ -31,7 +33,7 @@ export class Biome {
   }
 
   isGrassland(): boolean {
-      return this.name === "grassland" || this.name === "scrubland";
+      return this.name === "grassland" || this.name === "scrubland" || this.name === "steppe";
   }
 
   isWetland(): boolean {
@@ -227,12 +229,12 @@ export const mkBiomes = (geometry,width,height) => {
   
     for (let i of select_coast) {
       // tri_colors[i] = new Biome("hills",d3.interpolateYlOrBr(d3.randomUniform.source(rng)()()),i,[]);
-      tri_colors[i] = new Biome("plains",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);      
+      tri_colors[i] = new Biome("scrublands",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);      
     }
   
     for (let i of select_opposite) {
       // tri_colors[i] = new Biome("wetlands",d3.interpolateGnBu(d3.randomUniform.source(rng)()()),i,[]);
-      tri_colors[i] = new Biome("plains",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);      
+      tri_colors[i] = new Biome("grasslands",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);      
     }
   
     for (let i of far_coast) {
@@ -246,7 +248,7 @@ export const mkBiomes = (geometry,width,height) => {
     for (let i = 0; i < geometry.n_cells; i++) {
       if (!all_seas.includes(i) && !all_coasts.includes(i)) {
         interior.push(i);
-        tri_colors[i] = new Biome("plains",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);      
+        tri_colors[i] = new Biome("steppe",light_minty[d3.randomInt.source(rng)(0,4)()],i,[]);      
       }
     }
   

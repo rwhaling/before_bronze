@@ -1,7 +1,8 @@
-import { KEYS, DIRS } from "rot-js";
+import { KEYS, DIRS, RNG } from "rot-js";
 import { Game } from "../game";
 import { Actor, ActorType } from "./actor";
 import { Critter, Vis } from "./critter";
+import { Menu } from "../menu";
 
 import { Point } from "../point";
 import { Glyph } from "../glyph";
@@ -13,9 +14,11 @@ export class Player implements Actor {
     noise: number;
     minNoise: number;
     maxNoise: number;
+    hidden: boolean;
+    loot: Array<String>;
     private keyMap: { [key: number]: number };
-    private numKeys: Array<number>;
-    private actions: Array<() => void>; 
+    // TODO: Action interface, availability, cooldown
+    private numKeys: { [key: number]: () => void}
 
     constructor(private game: Game, public position: Point) {
         this.glyph = new Glyph("@", "yellow","#32926F");
@@ -23,6 +26,7 @@ export class Player implements Actor {
         this.minNoise = 0;
         this.maxNoise = 25;
         this.noise = 0;
+        this.loot = [];
 
         this.keyMap = {};
         this.keyMap[KEYS.VK_W] = 0; // up
@@ -34,25 +38,12 @@ export class Player implements Actor {
         this.keyMap[KEYS.VK_A] = 6; // left
         this.keyMap[KEYS.VK_Q] = 7;
 
-        this.numKeys = [
-            KEYS.VK_BACK_QUOTE,
-            KEYS.VK_1,
-            KEYS.VK_2,
-            KEYS.VK_3,
-            KEYS.VK_4,
-            KEYS.VK_5,
-            KEYS.VK_6,
-            KEYS.VK_7,
-            KEYS.VK_8,
-            KEYS.VK_9,
-            KEYS.VK_0,
-        ]
-        
-        this.actions = [
-            () => console.log("pressed backtick?"),
-            () => console.log("pressed 1?"),
-            () => console.log("pressed 2?")
-        ]
+        this.numKeys = {};
+        this.numKeys[KEYS.VK_BACK_QUOTE] = () => this.game.messageLog.appendText("pressed backtick?"); 
+        this.numKeys[KEYS.VK_1] = () => this.listen();
+        this.numKeys[KEYS.VK_2] = () => this.hide();
+        this.numKeys[KEYS.VK_3] = () =>  this.game.messageLog.appendText("pressed 3?");
+        this.numKeys[KEYS.VK_0] = () => this.showHelpMenu();
     }
 
     act(): Promise<any> {
@@ -73,6 +64,7 @@ export class Player implements Actor {
                 console.log("caught critter ", critter.name);
                 this.game.messageLog.appendText(`You caught a ${critter.name}!`);
                 this.game.spawner.despawn(actor);
+                this.loot.push(critter.name);
             }
         }
         if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {
@@ -80,6 +72,13 @@ export class Player implements Actor {
         }
         this.position = newPoint;
         this.noise = this.noise + 10 > this.maxNoise ? this.maxNoise : this.noise + 10;
+        if (this.hidden) {
+            let r = RNG.getPercentage();
+            if (r < 40) {
+                this.game.messageLog.appendText("you are no longer hidden");
+                this.hidden = false;
+            }  
+        }
         return true;
     }
 
@@ -96,11 +95,10 @@ export class Player implements Actor {
             } else {
                 return;
             }
-        } else if (this.numKeys.includes(code)) {
-            console.log("pressed num key?")
-            let idx = this.numKeys.indexOf(code);
-            let action = this.actions[idx];
+        } else if (code in this.numKeys) {
+            let action = this.numKeys[code];
             action();
+            validInput = true;
         } else if (code === KEYS.VK_SPACE || code === KEYS.VK_X) {
             this.updateVis();
             validInput = true;
@@ -118,6 +116,38 @@ export class Player implements Actor {
         return Math.max(x_dist, y_dist);
     }
 
+    private listen(): void {
+        this.game.messageLog.appendText("you listen carefully to your surroundings");
+        for (let spawn of this.game.spawner.spawns) {
+            let dist = this.visDist(spawn.position);
+            if (dist <= 8) {
+                if (spawn.type == ActorType.Critter) {
+                    let critter = spawn as Critter;
+                    if (critter.vis !== Vis.Seen) {
+                        critter.vis = Vis.Seen
+                        critter.glyph.foregroundColor = "white";
+                        this.game.messageLog.appendText(`You hear a ${critter.name}!`);
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    private hide(): void {
+        this.game.messageLog.appendText("you hide amidst some tall grasses");
+        this.hidden = true;
+        return;
+    }
+
+    private showHelpMenu(): void {
+        this.game.gameState.currentMenu = new Menu(40,30, "Help menu TBD\n\n", false, 0, [
+            {text: "OK", result: {}},
+        ])
+        return
+    
+    }
+
     updateVis(): void {
         for (let spawn of this.game.spawner.spawns) {
             let dist = this.visDist(spawn.position);
@@ -129,7 +159,6 @@ export class Player implements Actor {
                         critter.glyph.foregroundColor = "white";
                         this.game.messageLog.appendText(`You spot a ${critter.name}!`);
                     }
-
                 }
             }
         }

@@ -36,7 +36,7 @@ export class Game {
     private actionLinePosition: Point;
     private statusLinePosition: Point;
     private actionLogPosition: Point;
-    private gameState: GameState;
+    gameState: GameState;
 
     private foregroundColor = "white";
     private backgroundColor = "#084081";
@@ -95,11 +95,11 @@ export class Game {
 
     mapIsPassable(x: number, y: number): boolean {
         if (this.player.position.x === x && this.player.position.y === y) {
-            return true;
+            return false;
         }
         for (let spawn of this.spawner.spawns) {
             if (spawn.position.x === x && spawn.position.y === y) {
-                return true;
+                return false;
             }
         }
 
@@ -188,9 +188,21 @@ export class Game {
         ])
 
         this.map.generateMap(this.mapSize.width * 3, this.mapSize.height * 5);
-        this.generateBoxes();
-        this.createBeings();
+        // this.generateBoxes();
+
+        // let startingBiome = this.map.biomes.find( i => i.name === "lightForest");
+        // let startingPoint = this.map.cells.points[startingBiome.cell]
+
         this.scheduler = new Scheduler.Simple();
+
+        this.spawner = new Spawner(this, this.map, 5, 5);
+        let startingPoint = this.spawner.getStartPoint();
+
+        this.player = new Player(this, new Point(Math.floor(startingPoint[0]), Math.floor(startingPoint[1])));
+        // spawn town
+        this.town = new Town(this, this.map, new Point(Math.floor(startingPoint[0]) + 3, Math.floor(startingPoint[1])));
+
+        // this.createBeings();
         this.scheduler.add(this.player, true);
         this.scheduler.add(this.spawner, true);
 
@@ -355,26 +367,6 @@ export class Game {
             this.messageLog.appendText(helpMessage[index]);
         }
     }
-
-    private generateBoxes(): void {
-        let positions = this.map.getRandomTilePositions(TileType.Floor, this.maximumBoxes);
-        for (let position of positions) {
-            this.map.setTile(position.x, position.y, Tile.box);
-        }
-    }
-
-    private createBeings(): void {
-        let positions = this.map.getRandomTilePositions(TileType.Floor, 1);
-        let startingBiome = this.map.biomes.find( i => i.name == "lightForest");
-        let startingPoint = this.map.cells.points[startingBiome.cell]
-        console.log("starting in biome ",startingBiome, startingPoint);
-
-        this.player = new Player(this, new Point(Math.floor(startingPoint[0]),Math.floor(startingPoint[1])));
-        // spawn town
-        this.town = new Town(this, new Point(Math.floor(startingPoint[0]) + 3,Math.floor(startingPoint[1])));
-        this.spawner = new Spawner(this, 5, 5);
-    }
-
 
     private resetStatusLine(): void {
         this.statusLine.reset();

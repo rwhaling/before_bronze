@@ -1,8 +1,16 @@
+import { RNG } from "rot-js";
 import { Game } from "../game";
 import { Actor, ActorType } from "./actor";
 import { Point } from "../point";
 import { Glyph } from "../glyph";
 import { Critter } from "./critter";
+import { WorldMap } from "../mapgen/world-map";
+import { Biome } from "../mapgen/voronoi";
+import * as _ from "lodash";
+
+
+type SpawnTableEntry = (Game,Point) => Actor;
+type SpawnTable = Array<SpawnTableEntry>;
 
 export class Spawner implements Actor {
     glyph: Glyph;
@@ -10,13 +18,17 @@ export class Spawner implements Actor {
     position: Point;
     phase: number;
     spawns: Array<Actor>;
+    startingBiome: Biome;
 
-    constructor(private game: Game, private count: number, private freq: number) {
+    constructor(private game: Game, private map: WorldMap, private count: number, private freq: number) {
         this.glyph = new Glyph(" ", "black", "white");
         this.type = ActorType.Spawner;
         this.position = new Point(0,0);
-        this.phase = 0;
+        this.phase = -1;
         this.spawns = [];
+
+        this.startingBiome = this.map.biomes.find( i => i.name === "lightForest");
+
     }
 
     public despawn(a:Actor) {
@@ -60,7 +72,11 @@ export class Spawner implements Actor {
                     continue;
                 }
                 console.log("spawning new entity", spawn_pos);
-                let critter = new Critter(this.game, "bird", spawn_pos, new Glyph("b"));
+                let spawn_table = this.getSpawnTable(spawn_pos);
+                let spawn_r = RNG.getUniformInt(0, spawn_table.length - 1);
+                let spawner = spawn_table[spawn_r];
+                let critter = spawner(this.game, spawn_pos);
+                // let critter = new Critter(this.game, "bird", spawn_pos, new Glyph("b"));
                 this.spawns.push(critter);
                 this.game.addActor(critter);
             }
@@ -71,4 +87,94 @@ export class Spawner implements Actor {
         }
         return Promise.resolve();
     }
+
+    getStartPoint():Point {
+        return this.map.cells.points[this.startingBiome.cell]
+    }
+
+    getSpawnTable(pos:Point):SpawnTable {
+        // TODO look up by biome
+        let biome = this.map.getTileBiome(pos.x, pos.y);
+        if (biome.name === "lightForest") {
+            return [Spawner.quail,
+                Spawner.quail,
+                Spawner.squirrel,
+                Spawner.squirrel,
+                Spawner.rabbit]    
+        } else if (biome.name === "steppe") {
+            return [Spawner.grouse,
+                Spawner.grouse,
+                Spawner.squirrel,
+                Spawner.quail,
+                Spawner.hare]    
+        } else if (biome.name === "grasslands") {
+            return [Spawner.grouse,
+                    Spawner.partridge,
+                    Spawner.hare,
+                    Spawner.boar]
+        } else if (biome.name === "scrublands") {
+            return [Spawner.grouse,
+                Spawner.quail,
+                Spawner.rabbit,
+                Spawner.rabbit,
+                Spawner.boar]        
+        } else if (biome.name === "darkForest") {
+            return [Spawner.partridge,
+                    Spawner.deer,
+                    Spawner.deer,
+                    Spawner.partridge,
+                    Spawner.fox,
+                    Spawner.moose]
+        }
+        console.log("error, reached end of spawn tables?");
+        return [Spawner.partridge,
+            Spawner.grouse,
+            Spawner.squirrel,
+            Spawner.hare,
+            Spawner.rabbit]
+
+    }
+
+
+    static boar(game: Game, pos:Point): Critter {
+        return new Critter(game, "boar", pos, new Glyph("b"));
+    }
+
+    static deer(game: Game, pos:Point): Critter {
+        return new Critter(game, "deer", pos, new Glyph("d"));
+    }
+
+    static fox(game: Game, pos:Point): Critter {
+        return new Critter(game, "fox", pos, new Glyph("f"));
+    }
+
+    static grouse(game: Game, pos:Point): Critter {
+        return new Critter(game, "grouse", pos, new Glyph("g"));
+    }
+
+    static hare(game:Game, pos:Point): Critter  {
+        return new Critter(game, "hare", pos, new Glyph("h"));
+    }
+
+    static moose(game: Game, pos:Point): Critter {
+        return new Critter(game, "moose", pos, new Glyph("m"));
+    }
+
+    static partridge(game: Game, pos:Point): Critter {
+        return new Critter(game, "partridge", pos, new Glyph("p"));
+    }
+
+    static quail(game:Game, pos:Point): Critter  {
+        return new Critter(game, "quail", pos, new Glyph("q"));
+    }
+
+    static rabbit(game:Game, pos:Point): Critter  {
+        return new Critter(game, "rabbit", pos, new Glyph("r"));
+    }
+
+    static squirrel(game:Game, pos:Point): Critter  {
+        return new Critter(game, "squirrel", pos, new Glyph("s"));
+    }
+
 }
+
