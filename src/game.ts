@@ -8,6 +8,7 @@ import { GameState } from "./game-state";
 import { Actor, ActorType } from "./actors/actor";
 import { Point } from "./point";
 import { Glyph } from "./glyph";
+import { ActionLine } from "./ui/action-line";
 import { StatusLine } from "./status-line";
 import { MessageLog } from "./message-log";
 import { Menu } from "./menu";
@@ -21,15 +22,18 @@ export class Game {
     private scheduler: Simple;
     private map: WorldMap;
     private statusLine: StatusLine;
-    private messageLog: MessageLog;
+    private actionLine: ActionLine;
+    messageLog: MessageLog;
+    debugMode: boolean
 
-    private player: Player;
+    player: Player;
     private town: Town;
     spawner: Spawner;
 
     private gameSize: { width: number, height: number };
     mapSize: { width: number, height: number };
     mapScale: { width: number, height: number };
+    private actionLinePosition: Point;
     private statusLinePosition: Point;
     private actionLogPosition: Point;
     private gameState: GameState;
@@ -39,17 +43,21 @@ export class Game {
     private maximumBoxes = 10;
 
     constructor() {
-        this.gameSize = { width: 120, height: 54 };
+        this.gameSize = { width: 120, height: 60 };
         
-        this.mapSize = { width: this.gameSize.width, height: this.gameSize.height - 4 };
+        this.mapSize = { width: this.gameSize.width, height: this.gameSize.height - 8 };
         this.mapScale = { width: 4, height: 3}
-        this.statusLinePosition = new Point(0, this.gameSize.height - 4);
-        this.actionLogPosition = new Point(0, this.gameSize.height - 3);
+        this.actionLinePosition = new Point(0, this.gameSize.height - 8);
+        this.statusLinePosition = new Point(0, this.gameSize.height - 7);
+        this.actionLogPosition = new Point(0, this.gameSize.height - 6);
+
+        this.debugMode = false;
 
         this.display = new Display({
             width: this.gameSize.width,
             height: this.gameSize.height,
             fontSize: 12,
+            fg: this.foregroundColor,
             bg: "#084081"
         });
         document.body.appendChild(this.display.getContainer());
@@ -67,8 +75,9 @@ export class Game {
         this.gameState = new GameState();
         // this.map = new Map(this);
         this.map = new WorldMap(this);
+        this.actionLine = new ActionLine(this, this.actionLinePosition, this.gameSize.width)
         this.statusLine = new StatusLine(this, this.statusLinePosition, this.gameSize.width, { maxBoxes: this.maximumBoxes });
-        this.messageLog = new MessageLog(this, this.actionLogPosition, this.gameSize.width, 3);
+        this.messageLog = new MessageLog(this, this.actionLogPosition, this.gameSize.width, 6);
 
         this.initializeGame();
         this.mainLoop();
@@ -85,6 +94,15 @@ export class Game {
     }
 
     mapIsPassable(x: number, y: number): boolean {
+        if (this.player.position.x === x && this.player.position.y === y) {
+            return true;
+        }
+        for (let spawn of this.spawner.spawns) {
+            if (spawn.position.x === x && spawn.position.y === y) {
+                return true;
+            }
+        }
+
         return this.map.isPassable(x, y);
     }
 
@@ -196,7 +214,8 @@ export class Game {
                     break;
                 }
                 if (actor.type === ActorType.Player ) {
-                    this.drawPanel();
+                    this.player.updateVis();
+                    this.drawPanel();                
                 }         
                 await actor.act();
                 if (actor.type === ActorType.Player) {
@@ -292,6 +311,7 @@ export class Game {
             
         }
 
+        this.actionLine.draw();
         this.statusLine.draw();
         this.messageLog.draw();
     }

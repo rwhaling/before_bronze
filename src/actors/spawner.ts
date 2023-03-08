@@ -39,7 +39,7 @@ export class Spawner implements Actor {
             for (let spawn of this.spawns) {
                 let dist = Math.sqrt(Math.pow(player_pos.x - spawn.position.x,2) + Math.pow(player_pos.y - spawn.position.y,2));
                 console.log("checking actor dist,",dist,spawn);
-                if (dist > 20) {
+                if (dist > 14) {
                     to_despawn.push(spawn);
                 }
             }
@@ -53,9 +53,12 @@ export class Spawner implements Actor {
                 if (tries > maxtries) {
                     break;
                 }
-                let r1 = Math.floor(30 - Math.random() * 60);
-                let r2 = Math.floor(30 - Math.random() * 60);
+                let r1 = Math.floor(20 - Math.random() * 40);
+                let r2 = Math.floor(20 - Math.random() * 40);
                 let spawn_pos = new Point(player_pos.x + r1, player_pos.y + r2);
+                if (!this.game.mapIsPassable(spawn_pos.x, spawn_pos.y)) {
+                    continue;
+                }
                 console.log("spawning new entity", spawn_pos);
                 let critter = new Critter(this.game, "bird", spawn_pos, new Glyph("b"));
                 this.spawns.push(critter);

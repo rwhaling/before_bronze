@@ -38,8 +38,9 @@ export class StatusLine {
     }
 
     draw(): void {
+        let noise = this.game.player.noise;
         // let text = `turns: ${padRight(this.turns.toString(), 6)} pineapples: ${padRight(this.pineapples.toString(), 6)} boxes: ${padLeft(this.boxes.toString(), 2)} / ${padLeft(this.maxBoxes.toString(), 2)}`;
-        let text = `turns: ${padRight(this.turns.toString(), 6)} hp: ${padRight(this.hp.toString(), 2)}/${padRight(this.max_hp.toString(), 2)} water: ${padLeft(this.water.toString(), 2)} food: ${padLeft(this.food.toString(), 2)}`;
+        let text = `turns: ${padRight(this.turns.toString(), 6)}  hp: ${padRight(this.hp.toString(), 2)}/${padRight(this.max_hp.toString(), 2)}  noise: ${padLeft(noise.toString(), 2)}  food: ${padLeft(this.food.toString(), 2)}`;
 
         this.game.drawText(this.position, text, this.maxWidth);
     }
