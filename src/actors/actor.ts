@@ -3,7 +3,8 @@ import { Glyph } from "../glyph";
 
 export const enum ActorType {
     Player,
-    NPC,
+    Town,
+    Camp,
     Spawner,
     Critter,
     Enemy

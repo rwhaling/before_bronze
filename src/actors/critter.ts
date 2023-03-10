@@ -16,19 +16,22 @@ export enum Vis {
 export class Critter implements Actor {
     type: ActorType.Critter;
     vis: Vis;
+    visDistBonus: number;
     playerVis: Vis;
     rng: () => number;
 
-    constructor(private game: Game, public name: string, public position: Point, public glyph: Glyph) {
+    constructor(private game: Game, public name: string, public position: Point, public glyph: Glyph, visDistBonus?: number) {
         this.type = ActorType.Critter;
         this.rng = d3.randomLcg();
         this.vis = Vis.NotSeen;
+        this.visDistBonus = visDistBonus || 0;
+
         this.playerVis = Vis.NotSeen;
         this.glyph.foregroundColor = "black";
     }
 
     act(): Promise<any> {
-        console.log("turn for critter:", this.name);
+        // console.log("turn for critter:", this.name);
         this.updateVis();
 
         let r = d3.randomInt(0,8)();
@@ -40,11 +43,11 @@ export class Critter implements Actor {
             let rand_dirs = _.shuffle(DIRS[8]);
             for (let di = 0; di < 8; di++) {
                 let d = rand_dirs[di];
-                console.log("checking flee dir: ", d)
+                // console.log("checking flee dir: ", d)
                 let dPoint = new Point(this.position.x + d[0], this.position.y + d[1]);
                 let dist = this.visDist2(dPoint,this.game.getPlayerPosition());
                 if (dist > maxdist) {
-                    console.log("new best:", d, dPoint)
+                    // console.log("new best:", d, dPoint)
                     maxdist = dist;
                     newPoint = dPoint;
                 }
@@ -75,7 +78,8 @@ export class Critter implements Actor {
     private updateVis(): void {
         let player = this.game.player;
         let dist = this.visDist(player.position);
-        if (dist <= 3) {
+        let minDist = 3 + this.visDistBonus - player.stealthBonus;
+        if (dist <= minDist) {
             if (this.playerVis !== Vis.Seen) {
                 let r = RNG.getPercentage();
                 if (r <= player.noise && !player.hidden) {

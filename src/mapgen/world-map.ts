@@ -16,19 +16,19 @@ export class WorldMap {
     cells;
     biomes: Array<Biome>;
     private cache: Array<Array<Biome>>;
+    private dist_cache: Array<Array<number>>;
     private _isZoomed: boolean;
     zoomOffset: Point;
-    // private noise: SimplexNoise
 
     constructor(private game: Game) {
         this.map = {};
         this.mapSize = game.mapSize;
         this.mapScale = game.mapScale;
         this.cache = [];
+        this.dist_cache = [];
 
-        this._isZoomed = false;
+        this._isZoomed = true;
         this.zoomOffset = new Point(0,0);
-        // this.noise = mkSimplexNoise(Math.random);
     }
 
     generateMap(width: number, height: number): void {
@@ -38,6 +38,21 @@ export class WorldMap {
         this.mapSize = this.game.mapSize;
         this.fullMapSize = { width: width, height: height };
         this.mapScale = { width: width / this.mapSize.width, height: height / this.mapSize.height }
+        for (let i of this.biomes) {
+            console.log("creating random point for biome ",i)
+            let tries = 10;
+            let t = 0;
+            while (t < tries) {
+                let randomPoint = new Point(i.center.x + RNG.getUniformInt(-6,6), i.center.y + RNG.getUniformInt(-6,6));
+                if (this.getTileBiome(randomPoint.x,randomPoint.y).cell === i.cell) {
+                    i.randPoint = randomPoint;
+                    break;
+                }
+                else {
+                    tries += 1;
+                }
+            }
+        }
         console.log("cells",this.cells);
         console.log("biomes",this.biomes);
     }
@@ -87,7 +102,6 @@ export class WorldMap {
 
     getTileBiome(x: number, y: number): Biome {
         let cached = this.cache?.[x]?.[y];
-        let biome:Biome;
         if (cached === undefined) {
             let x_noise = 10 * noise2(100 + x/ 10, 100 + y / 13);
             let y_noise = 10 * noise2(200 + x/ 10, 200 + y / 13);
@@ -127,6 +141,29 @@ export class WorldMap {
         }
     }
 
+    visDist(x1, y1, x2, y2): number {
+        let x_dist = Math.abs(x1 - x2);
+        let y_dist = Math.abs(y1 - y2);
+        return Math.max(x_dist, y_dist);
+    }
+
+    getMapShade(x: number,y: number,n: number): number {
+        let cached = this.dist_cache?.[x]?.[y];
+        if (cached === undefined) {
+            cached = 20;
+        }
+        // let cached = 10;
+        if (n < cached) {
+            if (this.dist_cache[x] === undefined) {
+                this.dist_cache[x] = []
+            }
+            this.dist_cache[x][y] = n
+            return n;
+        } else {
+            return cached;
+        }
+    }
+
     draw(playerpos: Point): void {
         if (!this._isZoomed) {
             for (let x = 0; x < this.mapSize.width; x+= 1) {
@@ -134,12 +171,8 @@ export class WorldMap {
                     let key = this.coordinatesToKey(x, y);
                     let screen_pos = new Point(x,y);
                     let map_pos = this.gameToMapScale(screen_pos);
-                    // let glyph = this.map[key].glyph;
-                    // let x_noise = 10 * noise2(100 + map_pos.x/ 10, 100 + map_pos.y / 13);
-                    // let y_noise = 10 * noise2(200 + map_pos.x/ 10, 200 + map_pos.y / 13);
-                    // let cell = this.cells.delaunay.find(map_pos.x + x_noise,map_pos.y + y_noise);
+                    let player_map_pos = this.mapToGameScale(playerpos);
 
-                    // let biome = this.biomes[cell];
                     let biome = this.getTileBiome(map_pos.x,map_pos.y);
 
                     let glyph = Tile.floor.glyph;
@@ -147,18 +180,14 @@ export class WorldMap {
                         glyph = Tile.blank.glyph;
                     }
 
-                    // let cell = this.cells.delaunay.find(map_pos.x,map_pos.y);
-                    let bg = biome.baseColor;
-                    let fg = biome.baseColor;
-                    // let fg = lighten(lighten(biome.baseColor)).toString();
+                    let dist = this.visDist(x, y, player_map_pos.x, player_map_pos.y);
+                    let dist_adj = this.getMapShade(x, y, dist);
 
-                    // let noise_val = noise2(screen_pos.x * 17.5,screen_pos.y * 25.2);
-        
-                    // if (noise_val > 0.2) {
-                    //     bg = lighten(bg).toString();
-                    // } else if (noise_val < -0.2) {
-                    //     bg = darken(bg).toString();
-                    // }
+                    let bg = biome.baseColor;
+                    if (dist_adj > 5) {
+                        bg = darken(bg, 8 * (dist_adj - 5)).toString();
+                    }
+                    let fg = bg;
         
                     this.game.draw(screen_pos, glyph, bg, fg);
                 }
@@ -171,18 +200,6 @@ export class WorldMap {
                     let key = this.coordinatesToKey(x, y);
                     let map_pos = new Point(x + offset.x, y + offset.y);
                     let screen_pos = new Point(x,y);
-                    // console.log("offset:",offset, "screen_pos:", screen_pos, "map_pos:",map_pos);
-                    // let map_pos = new Point(x + this.zoomOffset.x, y + this.zoomOffset.y);
-            // for (let key in this.map) {
-                    // let pos = this.keyToPoint(key);
-                    // let scaled_pos = new Point(this.zoomOffset.x + (pos.x / 4.0), this.zoomOffset.y + (pos.y / 3.0));
-                    // let glyph = this.map[key].glyph;
-                    // let glyph = Tile.floor.glyph;
-                    // let x_noise = 10 * noise2(100 + map_pos.x/ 10, 100 + map_pos.y / 13);
-                    // let y_noise = 10 * noise2(200 + map_pos.x/ 10, 200 + map_pos.y / 13);
-                    // let cell = this.cells.delaunay.find(map_pos.x + x_noise,map_pos.y + y_noise);
-
-                    // let biome = this.biomes[cell];
                     let biome = this.getTileBiome(map_pos.x,map_pos.y);
 
                     let glyph = Tile.floor.glyph;
@@ -190,19 +207,8 @@ export class WorldMap {
                         glyph = Tile.blank.glyph;
                     }
 
-
                     let bg = biome.baseColor;
-                    // let fg = lighten(lighten(biome.baseColor)).toString();
-                    // TODO: add zooming back in, but cached
                     let fg = biome.fg;
-
-                    // let noise_val = noise2(map_pos.x * 17.5,map_pos.y * 25.2);
-        
-                    // if (noise_val > 0.2) {
-                    //     bg = lighten(bg).toString();
-                    // } else if (noise_val < -0.2) {
-                    //     bg = darken(bg).toString();
-                    // }
         
                     this.game.draw(screen_pos, glyph, bg, fg);
                 }
@@ -210,34 +216,23 @@ export class WorldMap {
         }
     }
 
-    isZoomed(): Boolean {
+    isZoomed(): boolean {
         return this._isZoomed;
     }
 
     zoomIn(playerPos: Point): void {
         if (!this._isZoomed) {
-            console.log("zooming in at",playerPos);
+            // console.log("zooming in at",playerPos);
             this._isZoomed = true;
-
-            // let newOffset = new Point(4.0 * Math.floor(playerPos.x / 4.0), 3.0 * Math.floor(playerPos.y / 3.0));
-            // // buggy, TODO fix
-            // let x_center_off = Math.floor(this.mapSize.width / 2) / 4.0;
-            // let y_center_off = Math.floor(this.mapSize.height / 2) / 3.0;
-
-            // // let newPos = new Point(((playerPos.x/4.0) - newOffset.x),((playerPos.y/3.0) - newOffset.y));
-            // this.zoomOffset = new Point(newOffset.x - x_center_off, newOffset.y - y_center_off);
-            // console.log("old pos:",playerPos, "new offset:",newOffset);
         }
     }
 
     zoomOut(playerPos: Point): void {
         if (this._isZoomed) {
-            console.log("zooming out at",playerPos);
+            // console.log("zooming out at",playerPos);
             this._isZoomed = false;
-            // this.zoomOffset = new Point(0,0);            
         }
     }
-
 
     private coordinatesToKey(x: number, y: number): string {
         return x + "," + y;

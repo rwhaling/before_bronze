@@ -1,16 +1,16 @@
 import * as d3 from "d3";
 
-export const lighten = (color, k = 1) => {
+export const lighten = (color, n = 5, k = 1) => {
     const {l, c, h} = d3.lch(color);
-    return d3.lch(l + 5 * k, c, h);
+    return d3.lch(l + n * k, c, h);
 }
 
-export const darken = (color, k = 1) => {
+export const darken = (color, n = 5, k = 1) => {
     const {l, c, h} = d3.lch(color);
-    return d3.lch(l - 5 * k, c, h);
+    return d3.lch(l - n * k, c, h);
 }
 
-export const saturate = (color, k = 1) => {
+export const saturate = (color, n = 9, k = 1) => {
     const {l, c, h} = d3.lch(color);
-    return d3.lch(l, c + 9 * k, h);
+    return d3.lch(l, c + n * k, h);
 }

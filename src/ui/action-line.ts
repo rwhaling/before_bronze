@@ -13,7 +13,7 @@ export class ActionLine {
     }
 
     draw(): void {
-        let text = `%c{white}[1 LISTEN] %c{white}[2 HIDE] %c{grey}[3 TRACK]    %c{white}[0 HELP] `
+        let text = `%c{white}[1 LISTEN] %c{white}[2 HIDE] %c{white}[3 SCOUT]    %c{white}[8 STATUS]%c{white}[9 INVENTORY] %c{white}[0 HELP] `
         this.game.drawText(this.position, text, this.maxWidth);
     }
 }

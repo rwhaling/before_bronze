@@ -18,7 +18,6 @@ export class Spawner implements Actor {
     position: Point;
     phase: number;
     spawns: Array<Actor>;
-    startingBiome: Biome;
 
     constructor(private game: Game, private map: WorldMap, private count: number, private freq: number) {
         this.glyph = new Glyph(" ", "black", "white");
@@ -26,9 +25,6 @@ export class Spawner implements Actor {
         this.position = new Point(0,0);
         this.phase = -1;
         this.spawns = [];
-
-        this.startingBiome = this.map.biomes.find( i => i.name === "lightForest");
-
     }
 
     public despawn(a:Actor) {
@@ -36,7 +32,7 @@ export class Spawner implements Actor {
             let idx = this.spawns.indexOf(a);
             this.spawns.splice(idx,1);
             this.game.removeActor(a);
-            console.log("despawned", a);
+            // console.log("despawned", a);
         }
     }
 
@@ -50,16 +46,16 @@ export class Spawner implements Actor {
             let to_despawn = [];
             for (let spawn of this.spawns) {
                 let dist = Math.sqrt(Math.pow(player_pos.x - spawn.position.x,2) + Math.pow(player_pos.y - spawn.position.y,2));
-                console.log("checking actor dist,",dist,spawn);
+                // console.log("checking actor dist,",dist,spawn);
                 if (dist > 14) {
                     to_despawn.push(spawn);
                 }
             }
             for (let spawn of to_despawn) {
-                console.log("despawning actor,", spawn);
+                // console.log("despawning actor,", spawn);
                 this.despawn(spawn);
             }
-            console.log("spawner at phase ",this.phase, "/ this.freq, attempting to spawn");
+            // console.log("spawner at phase ",this.phase, "/ this.freq, attempting to spawn");
             while (this.spawns.length < this.count) {
                 tries += 1;
                 if (tries > maxtries) {
@@ -71,7 +67,7 @@ export class Spawner implements Actor {
                 if (!this.game.mapIsPassable(spawn_pos.x, spawn_pos.y)) {
                     continue;
                 }
-                console.log("spawning new entity", spawn_pos);
+                // console.log("spawning new entity", spawn_pos);
                 let spawn_table = this.getSpawnTable(spawn_pos);
                 let spawn_r = RNG.getUniformInt(0, spawn_table.length - 1);
                 let spawner = spawn_table[spawn_r];
@@ -80,16 +76,12 @@ export class Spawner implements Actor {
                 this.spawns.push(critter);
                 this.game.addActor(critter);
             }
-            console.log("at maximum spawns:", this.spawns)
+            // console.log("at maximum spawns:", this.spawns)
             this.phase = 0;
         } else { 
             // console.log("spawner at phase ",this.phase, "/ this.freq")
         }
         return Promise.resolve();
-    }
-
-    getStartPoint():Point {
-        return this.map.cells.points[this.startingBiome.cell]
     }
 
     getSpawnTable(pos:Point):SpawnTable {
@@ -137,23 +129,23 @@ export class Spawner implements Actor {
 
 
     static boar(game: Game, pos:Point): Critter {
-        return new Critter(game, "boar", pos, new Glyph("b"));
+        return new Critter(game, "boar", pos, new Glyph("b"), 1);
     }
 
     static deer(game: Game, pos:Point): Critter {
-        return new Critter(game, "deer", pos, new Glyph("d"));
+        return new Critter(game, "deer", pos, new Glyph("d"), 2);
     }
 
     static fox(game: Game, pos:Point): Critter {
-        return new Critter(game, "fox", pos, new Glyph("f"));
+        return new Critter(game, "fox", pos, new Glyph("f"), 2);
     }
 
     static grouse(game: Game, pos:Point): Critter {
-        return new Critter(game, "grouse", pos, new Glyph("g"));
+        return new Critter(game, "grouse", pos, new Glyph("g"), 2);
     }
 
     static hare(game:Game, pos:Point): Critter  {
-        return new Critter(game, "hare", pos, new Glyph("h"));
+        return new Critter(game, "hare", pos, new Glyph("h"), 2);
     }
 
     static moose(game: Game, pos:Point): Critter {
@@ -161,7 +153,7 @@ export class Spawner implements Actor {
     }
 
     static partridge(game: Game, pos:Point): Critter {
-        return new Critter(game, "partridge", pos, new Glyph("p"));
+        return new Critter(game, "partridge", pos, new Glyph("p"), 1);
     }
 
     static quail(game:Game, pos:Point): Critter  {
@@ -169,7 +161,7 @@ export class Spawner implements Actor {
     }
 
     static rabbit(game:Game, pos:Point): Critter  {
-        return new Critter(game, "rabbit", pos, new Glyph("r"));
+        return new Critter(game, "rabbit", pos, new Glyph("r"), 1);
     }
 
     static squirrel(game:Game, pos:Point): Critter  {
