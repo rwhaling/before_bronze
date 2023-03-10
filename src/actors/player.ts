@@ -16,17 +16,23 @@ export class Player implements Actor {
     minNoise: number;
     maxNoise: number;
     hidden: boolean;
+    listening: boolean;
     food: number;
     maxFood: number; 
-    loot: Array<String>;
-    hasArchery: boolean;
+    hunger: number;
+    loot: Array<string>;
+    archeryLevel: number;
     arrows: number;
     maxArrows: number;
+    
     target?: Critter;
 
     visDistBonus: number;
     listenBonus: number;
+    listenCostBonus: number;
     stealthBonus: number;
+    hideCostBonus: number;
+    scoutCostBonus: number;
     private keyMap: { [key: number]: number };
     // TODO: Action interface, availability, cooldown
     private numKeys: { [key: number]: () => void}
@@ -36,17 +42,23 @@ export class Player implements Actor {
         this.type = ActorType.Player;
         this.minNoise = 0;
         this.maxNoise = 25;
+        this.hidden = false;
+        this.listening = false;
         this.noise = 0;
-        this.food = 50;
-        this.maxFood = 50;
+        this.food = 20;
+        this.maxFood = 20;
+        this.hunger = 0;
         this.loot = [];        
-        this.hasArchery = true;
+        this.archeryLevel = 0;
         this.arrows = 5;
-        this.maxArrows = 10;
+        this.maxArrows = 5;
 
         this.visDistBonus = 0;
         this.listenBonus = 0;
+        this.listenCostBonus = 0;
         this.stealthBonus = 0;
+        this.hideCostBonus = 0;
+        this.scoutCostBonus = 0;
 
         this.keyMap = {};
         this.keyMap[KEYS.VK_W] = 0; // up
@@ -59,12 +71,11 @@ export class Player implements Actor {
         this.keyMap[KEYS.VK_Q] = 7;
 
         this.numKeys = {};
-        this.numKeys[KEYS.VK_BACK_QUOTE] = () => this.aim(); 
+        this.numKeys[KEYS.VK_R] = () => this.aim(); 
         this.numKeys[KEYS.VK_1] = () => this.listen();
         this.numKeys[KEYS.VK_2] = () => this.hide();
         this.numKeys[KEYS.VK_3] = () => this.scout();
         this.numKeys[KEYS.VK_F] = () => this.fire();
-        // this.numKeys[KEYS.VK_3] = () => this.game.messageLog.appendText("pressed 3?");
         this.numKeys[KEYS.VK_8] = () => this.showStatus();
         this.numKeys[KEYS.VK_9] = () => this.showInventory();
         this.numKeys[KEYS.VK_0] = () => this.showHelpMenu();
@@ -80,6 +91,7 @@ export class Player implements Actor {
             console.log("entering tile with actor, ",actor);
             if (actor.type === ActorType.Town) {
                 console.log("entering town");
+                this.arrows = this.maxArrows;
                 this.game.showTownMenu();
                 return true;
             } else if (actor.type === ActorType.Critter) {
@@ -99,6 +111,8 @@ export class Player implements Actor {
         if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {
             return;
         }
+        this.hunger += 5;
+        this.checkHunger();
         this.position = newPoint;
         this.noise = this.noise + 10 > this.maxNoise ? this.maxNoise : this.noise + 10;
         if (this.hidden) {
@@ -107,6 +121,14 @@ export class Player implements Actor {
                 this.game.messageLog.appendText("you are no longer hidden");
                 this.hidden = false;
             }  
+        }
+        if (this.listening) {
+            let r = RNG.getPercentage();
+            if (r < 30) {
+                this.game.messageLog.appendText("you are no longer attuned to your surroundings");
+                this.listening = false;
+            }  
+
         }
         return true;
     }
@@ -131,6 +153,8 @@ export class Player implements Actor {
         } else if (code in this.numKeys) {
             let action = this.numKeys[code];
             action();
+            this.updateVis();
+            this.checkHunger();
             validInput = true;
         } else if (code === KEYS.VK_SPACE || code === KEYS.VK_X) {
             this.updateVis();
@@ -140,6 +164,35 @@ export class Player implements Actor {
         return validInput;
     }
 
+    private checkHunger(): void {
+        if (this.hunger >= 100) {
+            this.hunger = 0
+            this.food -= 1
+        } 
+        if (this.food < 0) {
+            this.game.messageLog.appendText("you starved.");
+            this.game.gameState.currentMenu = this.getDeathMenu();
+        }
+        if (this.food <= 5 && this.hunger == 0) {
+            this.game.messageLog.appendText("you are very hungry - find food soon or you will starve!")
+        }
+    }
+
+    private getDeathMenu(): Menu {
+        let message = "You have died.  Dawn of Bronze is a difficult game\nfeaturing PERMANENT DEATH.\n\nDo you wish to CHEAT?\n"
+        return new Menu(60, 30, "GAME OVER\n\n" + message, 0, [
+            {text: "YES", result: {}},
+        ], (m) => this.deathMenuCallback(m));
+    }
+
+    private deathMenuCallback(m:Menu): boolean {
+        console.log("death menu callback?"); 
+        this.game.gameState.cheatCount += 1;
+        this.food = this.maxFood;
+        this.position = this.game.startingPoint;
+        return true
+    }
+
     private visDist(point: Point): number {
         let x_dist = Math.abs(this.position.x - point.x);
         let y_dist = Math.abs(this.position.y - point.y);
@@ -147,12 +200,18 @@ export class Player implements Actor {
     }
 
     private aim(): void {
+        if (this.archeryLevel === 0) {
+            return;
+        }
         console.log("aiming?", this.game.spawner.spawns);
         let tmp: Critter
         let min_dist = 9999;
         for (let spawn of this.game.spawner.spawns) {
             // TODO: cycle?
             let c = spawn as Critter
+            if (c === this.target) { 
+                continue
+            }
             let dist = this.visDist(spawn.position);
             if (dist < min_dist && c.vis === Vis.Seen) {
                 tmp = c
@@ -164,30 +223,69 @@ export class Player implements Actor {
     }
 
     private fire(): void {
+        if (this.archeryLevel === 0) {
+            return;
+        }
         if (this.arrows <= 0) {
             this.game.messageLog.appendText("you are out of arrows")
             console.log("no arrows");
             return
         }
         if (this.target) {
+            // TODO accuracy based on distance/level
+            let dist = this.visDist(this.target.position);
+            let accuracy = this.getAccuracy(dist);
             this.arrows -= 1;
-            // TODO - chance to hit
-            // TODO - chance to alert target
-            this.game.messageLog.appendText(`You shot a ${this.target.name}!`);
-            this.game.spawner.despawn(this.target);
-            this.loot.push(this.target.name);
-            console.log("fire!");
+            let r = RNG.getUniformInt(0,100);
+            if (r < accuracy) {
+                this.game.messageLog.appendText(`You shot a ${this.target.name}!`);
+                this.game.spawner.despawn(this.target);
+                this.loot.push(this.target.name);    
+            } else {
+                this.game.messageLog.appendText(`You shot at a ${this.target.name}, but missed!`);
+            }
             return
         } else {
-            this.game.messageLog.appendText("you must aim [~] before firing your bow")
+            this.game.messageLog.appendText("you must aim [R] before firing your bow")
             console.log("no target!")
             return
         }
-        return;
+    }
+
+    private getAccuracy(dist: number) {
+        if (this.archeryLevel === 0) {
+            return 0;
+        } else if (this.archeryLevel === 1) {
+            if (dist <= 2) { return 80; }
+            else if (dist <= 3) { return 25; }
+            else { return 0 }    
+        } else if (this.archeryLevel === 2) {
+            if (dist <= 2) { return 80; }
+            else if (dist <= 3) { return 50; } 
+            else if (dist <= 4) { return 20; }
+            else { return 0 }    
+        } else if (this.archeryLevel === 3) {
+            if (dist <= 3) { return 80; }
+            else if (dist <= 4) { return 60; } 
+            else if (dist <= 5) { return 35; }
+            else { return 0 }    
+        }
     }
 
     private listen(): void {
-        this.game.messageLog.appendText("you listen carefully to your surroundings");
+        let listenCost = 1 - this.listenCostBonus;
+        if (this.food > listenCost) {
+            this.food -= listenCost;
+        } else {
+            return
+        }
+        let message = "you listen carefully to your surroundings"
+        if (listenCost > 0) {
+            message += ` [-${listenCost} food]`
+        }
+
+        this.game.messageLog.appendText(message);
+        this.listening = true;
         for (let spawn of this.game.spawner.spawns) {
             let dist = this.visDist(spawn.position);
             if (dist <= 7 + this.listenBonus) {
@@ -205,12 +303,13 @@ export class Player implements Actor {
     }
 
     private hide(): void {
-        this.game.messageLog.appendText("you hide amidst some tall grasses [-1 food]");
-        if (this.food >= 2) {
-            this.food -= 1;
+        let hideCost = 2 - this.hideCostBonus;
+        if (this.food > hideCost) {
+            this.food -= hideCost;
         } else {
             return
         }
+        this.game.messageLog.appendText(`you hide amidst some tall grasses [-${hideCost} food]`);
 
         this.hidden = true;
         return;
@@ -218,14 +317,15 @@ export class Player implements Actor {
 
     private scout(): void {
         let biome = this.game.getTileBiome(this.position.x,this.position.y);
-        this.game.messageLog.appendText("you hide amidst some tall grasses [-3 food]");
-        if (this.food >= 4) {
-            this.food -= 3;
+        let scoutCost = 5 - this.scoutCostBonus;
+        if (this.food > scoutCost) {
+            this.food -= scoutCost;
         } else {
+            this.game.messageLog.appendText("you are too hungry! find more food quickly, before you starve!")
             return
         }
 
-        this.game.messageLog.appendText(`you scout the surrounding ${biome.name} - press any key when done`);
+        this.game.messageLog.appendText(`you scout the surrounding ${biome.name} - press any key when done [-${scoutCost} food]`);
 
         // this.game.messageLog.appendText()
         let [nearestCamp, distance] = this.game.getNearestCamp(this.position.x, this.position.y);
@@ -245,9 +345,10 @@ export class Player implements Actor {
 
     private showStatus(): void {
         let statusMenuText = "  STATUS  \n\n";
-        statusMenuText += `  VISION: 5 + ${this.visDistBonus}\n- you can see creatures up to ${5 + this.visDistBonus} squares away\n`;
-        statusMenuText += `  HEARING: 7 + ${this.listenBonus}\n- you can hear creatures up to ${7 + this.listenBonus} squares away\n`;
+        statusMenuText += `  VISION: 4 + ${this.visDistBonus}\n- you can see creatures up to ${4 + this.visDistBonus} squares away\n`;
+        statusMenuText += `  HEARING: 7 + ${this.listenBonus}\n- you can hear creatures up to ${7 + this.listenBonus} squares away\n(costs 1 food)`;
         statusMenuText += `  STEALTH: ${this.stealthBonus}\n- creatures can see you ${this.stealthBonus} fewer squares away than normal\n`;
+        statusMenuText += `  HIDE: most creatures cannot see you (costs )`
         this.game.gameState.currentMenu = new Menu(40,30, statusMenuText, 0, [
             {text: "OK", result: {}},
         ], (m) => { console.log("status menu callback?"); return true});
@@ -277,12 +378,16 @@ export class Player implements Actor {
     updateVis(): void {
         for (let spawn of this.game.spawner.spawns) {
             let dist = this.visDist(spawn.position);
-            if (dist <= 5 + this.visDistBonus) {
+            let threshold = 4 + this.visDistBonus;
+            if (this.listening) {
+                threshold = 7 + this.listenBonus
+            }
+            if (dist <= threshold) {
                 if (spawn.type == ActorType.Critter) {
                     let critter = spawn as Critter;
                     if (critter.vis !== Vis.Seen) {
                         critter.vis = Vis.Seen
-                        critter.glyph.foregroundColor = "white";
+                        critter.glyph.foregroundColor = "white"; // hack
                         this.game.messageLog.appendText(`You spot a ${critter.name}!`);
                     }
                 }

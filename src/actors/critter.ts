@@ -18,6 +18,7 @@ export class Critter implements Actor {
     vis: Vis;
     visDistBonus: number;
     playerVis: Vis;
+    moveChance: number
     rng: () => number;
 
     constructor(private game: Game, public name: string, public position: Point, public glyph: Glyph, visDistBonus?: number) {
@@ -25,6 +26,7 @@ export class Critter implements Actor {
         this.rng = d3.randomLcg();
         this.vis = Vis.NotSeen;
         this.visDistBonus = visDistBonus || 0;
+        this.moveChance = 35 + d3.randomInt(0,15)();
 
         this.playerVis = Vis.NotSeen;
         this.glyph.foregroundColor = "black";
@@ -33,14 +35,23 @@ export class Critter implements Actor {
     act(): Promise<any> {
         // console.log("turn for critter:", this.name);
         this.updateVis();
+        let newPoint: Point;
 
-        let r = d3.randomInt(0,8)();
-        let dir = DIRS[8][r];
-        let newPoint = new Point(this.position.x + dir[0], this.position.y + dir[1]);
+        if (this.playerVis !== Vis.Seen) {
+            let chance = d3.randomInt(0,100)();
+            if (chance > this.moveChance) { 
+                return Promise.resolve() 
+            }
+            let r = d3.randomInt(0,8)();
+            let dir = DIRS[8][r];
+            newPoint = new Point(this.position.x + dir[0], this.position.y + dir[1]);
 
-        let maxdist = 0;
-        if (this.playerVis === Vis.Seen) {
+       
+            
+        } else if (this.playerVis === Vis.Seen) {
             let rand_dirs = _.shuffle(DIRS[8]);
+            let maxdist = 0;
+
             for (let di = 0; di < 8; di++) {
                 let d = rand_dirs[di];
                 // console.log("checking flee dir: ", d)
@@ -91,5 +102,5 @@ export class Critter implements Actor {
         }
         return;
     }
-
 }
+

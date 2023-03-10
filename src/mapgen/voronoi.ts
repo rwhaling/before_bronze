@@ -28,7 +28,7 @@ export class Biome {
   }
 
   isGrassland(): boolean {
-      return this.name === "grassland" || this.name === "scrubland" || this.name === "steppe";
+      return this.name === "grasslands" || this.name === "scrublands" || this.name === "steppe";
   }
 
   isWetland(): boolean {

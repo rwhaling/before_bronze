@@ -32,6 +32,7 @@ export class Game {
     player: Player;
     private town: Town;
     spawner: Spawner;
+    startingPoint: Point;
 
     private gameSize: { width: number, height: number };
     mapSize: { width: number, height: number };
@@ -54,7 +55,7 @@ export class Game {
         this.statusLinePosition = new Point(0, this.gameSize.height - 7);
         this.actionLogPosition = new Point(0, this.gameSize.height - 6);
 
-        this.debugMode = false;
+        this.debugMode = true;
 
         this.display = new Display({
             width: this.gameSize.width,
@@ -89,11 +90,11 @@ export class Game {
         this.display.clear();
 
         this.messageLog.clear();
-        if (!this.gameState.isGameOver() || this.gameState.doRestartGame()) {
-            this.resetStatusLine();
-            this.writeHelpMessage();
-        }
+        // if (!this.gameState.isGameOver() || this.gameState.doRestartGame()) {
+        // }
         this.gameState.reset();
+        this.resetStatusLine();
+        this.writeHelpMessage();
 
         this.map.generateMap(this.mapSize.width * 3, this.mapSize.height * 4);
 
@@ -101,11 +102,11 @@ export class Game {
 
         this.spawner = new Spawner(this, this.map, 5, 5);
         let startingBiome = this.map.biomes.find( i => i.name === "lightForest");
-        let startingPoint = startingBiome.center;
+        this.startingPoint = startingBiome.center;
 
         // let startingPoint = this.spawner.getStartPoint();
 
-        this.player = new Player(this, startingPoint);
+        this.player = new Player(this, this.startingPoint);
         // spawn town
         this.town = new Town(this, this.map, startingBiome, startingBiome.randPoint);
 
@@ -307,10 +308,10 @@ export class Game {
                 // this.gameState.currentMenu = null;
             }
 
-            if (this.gameState.isGameOver()) {
-                await InputUtility.waitForInput(this.handleInput.bind(this));
-                this.initializeGame();
-            }
+            // if (this.gameState.isGameOver()) {
+            //     await InputUtility.waitForInput(this.handleInput.bind(this));
+            //     this.initializeGame();
+            // }
         }
     }
 
