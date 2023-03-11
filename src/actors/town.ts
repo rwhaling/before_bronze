@@ -58,13 +58,13 @@ export class Town implements Actor {
 
         this.quests = [
             { target: "rabbit", quantity: 2, 
-              description:`first, catch me some rabbits \nfrom the woods nearby.`, reward:"hide"},
+              description:`She asks you to first bring 2 rabbits, which will\n develop your ability to move quickly while hidden.`, reward:"hide"},
             { target: "deer", quantity: 2,
-              description:`take your bow and hunt me \n2 deer from the forest in the ${biome_dir("forest")}`, reward:"bow_1"},
+              description:`Next, use all your skills of stealth to bring 2 deer\n from the nearby woods, show that you have mastered your spear,\n and prove your readiness for the art of archery`, reward:"bow_1"},
             { target: "boar", quantity: 3, 
-            description:`bring me 3 wild boars \nfrom the grasslands in the ${biome_dir("grasslands")}`, reward:"bow_2"},
+            description:`Now she asks you to demonstrate your aptitude with the bow,\n and retrieve 3 boar pelts from the grasslands in the ${biome_dir("grasslands")}\nBeware - boar are dangerous, and may charge you if cornered`, reward:"bow_2"},
             { target: "moose", quantity: 1,
-              description:`this is your final quest.\nbring me a moose from the taiga in the ${biome_dir("taiga")}`, reward:"bow_3"}
+              description:`You have nearly mastered the hunter's arts.\n\nFar to ${biome_dir("taiga")}, search the deep taiga for a moose, and retrieve its pelt.\nMoose are secretive, but extremely aggressive and dangerous when startled.\n\nThis is your final quest.`, reward:"bow_3"}
         ]
         this.currentQuest = 0;
 
@@ -92,16 +92,16 @@ export class Town implements Actor {
 
             this.missions = [
                 { target: forestCamp,
-                  description: `find a camp in the woods,\n just ${camp_dir(forestCamp)} of here`,
+                  description: `He tells you of a clearing in the woods, just ${camp_dir(forestCamp)} of here\nSearch it out by SCOUTing the nearby area until you find it,\nand you will improve the efficiency of your abilities.`,
                   reward: "scout"},
                 { target: grasslandCamp,
-                  description: `find a camp in the grassland,\n just ${camp_dir(grasslandCamp)} of here`,
+                  description: `Further to the ${camp_dir(grasslandCamp)}, in the grasslands, is another good site for a camp,\n which will improve your access to the rich game nearby\nScouting without the shelter of the forest presents challenges,\nbut if you succeed your stealth skills will be greatly enhanced.`,
                   reward: "stealth"},  
                 { target: steppeCamp,
-                  description: `find a camp in the central steppe,\n to the ${camp_dir(steppeCamp)} `,
+                  description: `The central steppes, to the ${camp_dir(steppeCamp)}, are rich in game, but \ndangerous as well; Finding a suitably sheltered spot will hone your vision, \nand provide access to the many surrounding areas.\n`,
                   reward: "vision"},
                 { target: darkForestCamp,
-                  description: `find a camp in the distant taiga,\n to the ${camp_dir(darkForestCamp)}`,
+                  description: `The distant taiga, in the ${camp_dir(darkForestCamp)}, is a harsh world unto itself,\nbut if you learn to survive it, your attunement with surroundings\nwill be unchallengeable.\n`,
                   reward: "listen"}
             ];
             this.currentMission = 0;
@@ -114,7 +114,7 @@ export class Town implements Actor {
             { quantity: 25,
               description: "food satchel upgrade (max 60)",
               reward: "food_2"},
-            { quantity: 35,
+            { quantity: 30,
               description: "food satchel upgrade (max 100)",
               reward: "food_3"},
             { quantity: 40,
@@ -130,7 +130,13 @@ export class Town implements Actor {
     }
 
     getTownMenu(): Menu {
-        return new Menu(60,30, "  TOWN  ", 0, [
+        let message = "TOWN\n\nThis is your people's settlement, nestled into a meadow at the forest's edge.\n"
+        message += "A few dozen people are going about their ordinary routines, but a handful have \n"
+        message += "special significance for you:\n\n"
+        message += "First, the TRADER will exchange your loot and pelts for FOOD, earning you satchel upgrades\n"
+        message += "The local animist offers difficult QUESTS to challenge and expand your abilities as a hunter.\n"
+        message += "Finally, the SCOUT can point you toward HUNTING CAMPS, and will reward you with skill upgrades.\n"
+        return new Menu(100,30, message, 0, [
             {text: "TRADE", result: {}},
             {text: "QUESTS", result: {}},
             {text: "SCOUT", result: {}},
@@ -165,9 +171,11 @@ export class Town implements Actor {
             upgrade_description += ` (READY)`
         }
 
+        let message = "TRADE  \n\nHere, you can TRADE the various animal pelts you have collected\n"
+        message += "in exchange for FOOD.  Each one you exchange will count toward UPGRADES.\n"
+        message += "(loot that you field-dress at a CAMP does not count toward upgrades here)"
 
-
-        return new Menu(80,30, "Welcome to the trading post", 0, [
+        return new Menu(80,30, message, 0, [
             {text: `TRADE : +${loot_value} food`, result: {}},
             {text: `UPGRADE: ${upgrade_description}`, result: {}},
             {text: "BACK", result: {}},
@@ -179,11 +187,11 @@ export class Town implements Actor {
         console.log("trade callback?",m);
         if (m.currentSelection === 0) {
             let loot_value = this.tradeLoot();
-
-            this.game.gameState.currentMenu = this.getTradeMenu();
             let message = `you hand over your loot and receive ${loot_value} food`;
             this.game.messageLog.appendText(message);
             this.tradeTotal += loot_value;
+
+            this.game.gameState.currentMenu = this.getTradeMenu();
 
             return true;
         } else if (m.currentSelection === 1) {
@@ -193,9 +201,10 @@ export class Town implements Actor {
             let upgrade_ready = upgrade_remaining <= 0 || this.game.debugMode;
             if (upgrade_ready) {
                 this.applyQuestReward(current_upgrade.reward);
+                this.tradeTotal -= current_upgrade.quantity;
                 this.currentUpgrade += 1;
                 if (this.currentUpgrade >= this.upgrades.length) {
-                    this.currentMission = this.upgrades.length - 1;
+                    this.currentUpgrade = this.upgrades.length - 1;
                 }
                 return true;
             } else {
@@ -255,7 +264,13 @@ export class Town implements Actor {
     getQuestMenu(): Menu {
         let q = this.quests[this.currentQuest];
 
-        let menuText = "  QUEST HUB  \n\n" + q.description;
+        // let menuText = "  QUEST HUB  \n\n" + q.description;
+        let menuText = "QUEST\n\n"
+        menuText += "Your local animist is your people's advisor on many matters\n",
+        menuText += "both spiritual and practical. As a hunter, you particulary value\n"
+        menuText += "the depth of her connection with nature and her knowledge \nof the land around you.\n"
+        menuText += "-----------------------\n"
+        menuText += q.description;
 
         let loot =  _.countBy( this.game.player.loot);
         let questReady = false;
@@ -269,9 +284,7 @@ export class Town implements Actor {
         let isQuestReady = ""
         if (questReady) { isQuestReady = "(READY)"}
 
-
-
-        return new Menu(60,30, menuText, 0, [
+        return new Menu(80,30, menuText, 0, [
             {text: `TURN IN : ${q.quantity} ${q.target} ${isQuestReady}`, result: {}},
             {text: "BACK", result: {}},
             {text: "LEAVE", result: {}},
@@ -324,13 +337,20 @@ export class Town implements Actor {
 
     getScoutMenu(): Menu {
         let currentMission = this.missions[this.currentMission];
-
-        let menuText = "  SCOUT  \n\n" + currentMission.description;
+        let menuText = "SCOUT\n\n"
+        menuText += "The SCOUT is your people's most senior hunter and woodsman,\n"
+        menuText += "a living encyclopedia of the rocks, streams, trees and hills,\n"
+        menuText += "of the regions surrounding your village.\n\n"
+        menuText += "Under his tutelage, you can learn how to survive efficiently\n"
+        menuText += "in the surrounding wilderness.\n"
+        menuText += "------------------------------\n"
+        menuText += currentMission.description;
+        // let menuText = "  SCOUT  \n\n" + currentMission.description;
         console.log("current mission target:",currentMission);
         let missionReady = currentMission.target.discovered || this.game.debugMode;
         let isMissionReady = ""
         if (missionReady) { isMissionReady = "(READY)"}
-        return new Menu(60,30, menuText, 0, [
+        return new Menu(80,30, menuText, 0, [
             {text: `TURN IN ${isMissionReady}`, result: {}},
             {text: "BACK", result: {}},
             {text: "LEAVE", result: {}},
@@ -344,6 +364,7 @@ export class Town implements Actor {
             if (missionReady) {
                 let message = `you describe the location to the scout`;
                 this.game.messageLog.appendText(message);
+                this.applyQuestReward(currentMission.reward);
                 // TODO: check
                 this.currentMission += 1;
                 if (this.currentMission >= this.missions.length) {
@@ -381,8 +402,9 @@ export class Town implements Actor {
             this.game.messageLog.appendText("you are more efficient at scouting, and will consume significantly less time, and food, when doing so")
             this.game.player.scoutCostBonus += 2;
         } else if (r === "stealth") {
-            this.game.messageLog.appendText("you are more stealthy, enemies will not detect you from as far away") // todo, clarify
+            this.game.messageLog.appendText("you are more stealthy, and listening to your surrounding will consume less food") // todo, clarify
             this.game.player.stealthBonus += 2;
+            this.game.player.listenCostBonus += 1;
         } else if (r === "hide") {
             this.game.messageLog.appendText("you can move faster while remaining hidden, and will consume less food") // todo, clarify
             this.game.player.hideCostBonus += 1;
@@ -425,14 +447,18 @@ export class Town implements Actor {
 
         let target_camp = currentMission.target
 
-        let camp_description: string;
+        if (this.game.player.hp < this.game.player.maxHp) {
+            this.game.messageLog.appendText("your HP is replenished")
+        }
 
+        let camp_description: "This is a good hunting camp, sheltered from the elements and dangers of the surrounding area.\n";
+        camp_description += "You can field-dress your loot here in exchange for meat, if you wish\n (it will not count toward upgrades in town)\n\n"
         if (target_camp === this_camp) {
-            camp_description = "You reached the location you were searching for;\nreturn to the SCOUT in town for a reward"
+            camp_description += "You reached the location you were searching for;\nreturn to the SCOUT in town for a reward"
         } else {
             let target_direction = this.game.getCardinalDirection(this_camp.position.x, this_camp.position.y, target_camp.position.x, target_camp.position.y)
             let target_biome = target_camp.biome.name
-            camp_description = `This is a good spot, but not the one you were looking for;\n based on the SCOUT's directions, you should check\n in the ${target_biome} to the ${target_direction}`
+            camp_description += `This is a good spot, but not the one you were looking for;\n based on the SCOUT's directions, you should check\n in the ${target_biome} to the ${target_direction}`
         }
 
         return new Menu(60,30, "  CAMP  \n"+camp_description, 0, [

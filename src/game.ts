@@ -427,7 +427,9 @@ export class Game {
 
     private writeHelpMessage(): void {
         let helpMessage = [
-            `Move with ASDW/QEZC, search with 'spacebar' or 'return'.`,
+            'Press 0 for more detailed help at any time.',
+            `Move with ASDW/QEZC, and use the number keys 1-3 for skills.  Use S/W and Return to navigate menus.`,
+            "Welcome to the world of DAWN OF BRONZE"
         ];
 
         for (let index = helpMessage.length - 1; index >= 0; --index) {

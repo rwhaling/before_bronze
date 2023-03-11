@@ -8,6 +8,7 @@ import { Point } from "../point";
 import { Glyph } from "../glyph";
 import { InputUtility } from "../input-utility";
 import * as _ from "lodash";
+import { Biome } from "../mapgen/voronoi";
 
 export class Player implements Actor {
     glyph: Glyph;
@@ -95,7 +96,13 @@ export class Player implements Actor {
             console.log("entering tile with actor, ",actor);
             if (actor.type === ActorType.Town) {
                 console.log("entering town");
-                this.arrows = this.maxArrows;
+                if (this.arrows <= this.maxArrows) {
+                    this.arrows = this.maxArrows;
+                    this.game.messageLog.appendText("you replenish your arrows in town;")    
+                }
+                if (this.game.player.hp < this.game.player.maxHp) {
+                    this.game.messageLog.appendText("your HP is replenished")
+                }        
                 this.game.showTownMenu();
                 return true;
             } else if (actor.type === ActorType.Critter) {
@@ -261,7 +268,7 @@ export class Player implements Actor {
             if (r < accuracy) {
                 this.target.hp -= 1;
                 if (this.target.hp >= 1) {
-                    this.game.messageLog.appendText(`You attacked the ${this.target.name} with your spear for 1 hp damage!`);
+                    this.game.messageLog.appendText(`You attacked the ${this.target.name} with your bow for 1 hp damage!`);
                     this.target.playerVis = Vis.Seen;
                     if (this.target.aggressiveChance > 0) {
                         this.target.aggressive = true;
@@ -318,7 +325,7 @@ export class Player implements Actor {
         this.listening = true;
         for (let spawn of this.game.spawner.spawns) {
             let dist = this.visDist(spawn.position);
-            if (dist <= 7 + this.listenBonus) {
+            if (dist <= 8 + this.listenBonus) {
                 if (spawn.type == ActorType.Critter) {
                     let critter = spawn as Critter;
                     if (critter.vis !== Vis.Seen) {
@@ -355,22 +362,39 @@ export class Player implements Actor {
             return
         }
 
-        this.game.messageLog.appendText(`you scout the surrounding ${biome.name} - press any key when done [-${scoutCost} food]`);
+        this.game.messageLog.appendText(`You scout the surrounding ${biome.name}; press any key when don. [-${scoutCost} food]`);
+        this.game.messageLog.appendText(this.getBiomeDescription(biome));        
 
         // this.game.messageLog.appendText()
         let [nearestCamp, distance] = this.game.getNearestCamp(this.position.x, this.position.y);
         if (distance < 16 && nearestCamp.discovered === false) {
             let direction = this.game.getCardinalDirection(this.position.x, this.position.y, nearestCamp.position.x, nearestCamp.position.y);
-            let message = `you see signs to the ${direction} of a good camp site`
+            let message = `You see signs to the ${direction} of a good camp site.`
             this.game.messageLog.appendText(message);
         }
         if (distance < 5 && nearestCamp.discovered === false) {
             nearestCamp.discovered = true;
-            this.game.messageLog.appendText("you find a camp site close by");
+            this.game.messageLog.appendText("You find a camp site close by.");
 
         }
         this.game.toggleZoom();
         return;
+    }
+
+    private getBiomeDescription(b:Biome): string {
+        let message = ""
+        if (b.name === "forest") {
+            message += "This sheltered forest contains quail, squirrel, rabbits, and a few skittish deer."
+        } else if (b.name === "steppe") {
+            message += "The austere steppes are home to grouse, foxes, and hares."
+        } else if (b.name === "grasslands") {
+            message += "These fruitful grasslands are brimming with grouse, partridge, and hare, as well as dangerous wild boar."
+        } else if (b.name === "scrublands") {
+            message += "The seemingly desolate scrub shelters rabbits, hares, and foxes; a pack of wild boars forages here occasionally."
+        } else if (b.name === "taiga") {
+            message += "The deep taiga is home to deer, partridges, and foxes; beware the solitary moose that wander in the snow."            
+        }
+        return message
     }
 
     private showStatus(): void {
@@ -380,7 +404,7 @@ export class Player implements Actor {
         statusMenuText += `  STEALTH: ${this.stealthBonus}\n- creatures can see you ${this.stealthBonus} fewer squares away than normal\n`;
         statusMenuText += `  HIDE: most creatures cannot see you (costs )`
         this.game.gameState.currentMenu = new Menu(60,30, statusMenuText, 0, [
-            {text: "OK", result: {}},
+            {text: "OK (PRESS RETURN)", result: {}},
         ], (m) => { console.log("status menu callback?"); return true});
 
     }
@@ -392,18 +416,32 @@ export class Player implements Actor {
             invMenuText += `${loot[l]} ${l}\n`
         }
         this.game.gameState.currentMenu = new Menu(60,30, invMenuText, 0, [
-            {text: "OK", result: {}},
+            {text: "OK (PRESS RETURN)", result: {}},
         ], (m) => { console.log("inv menu callback?"); return true});
 
     }
 
     private showHelpMenu(): void {
-        let debug_desc = "DEBUG ON"
+        let debug_desc = "ENABLE DEBUG MODE?"
         if (this.game.debugMode) {
-            debug_desc = "DEBUG OFF"
+            debug_desc = "DISABLE DEBUG MODE"
         }
-        this.game.gameState.currentMenu = new Menu(60,30, "Help menu TBD\n\n", 0, [
-            {text: "OK", result: {}},
+        let helpMessage = "HELP\n"
+        helpMessage += "Don't starve.  Catch animals, and trade them in town or camp for more food\n"
+        helpMessage += "Use ASDW to move, or QEZC to move diagonally.\n\n"
+        helpMessage += "You have skills that can help you, but they all consume more food -\n"
+        helpMessage += "[1] LISTENS to your surroundings and locates nearby creatures\n"
+        helpMessage += "[2] HIDES so that your prey does not detect you\n"
+        helpMessage += "[3] SCOUTS the surrounding area, and may reveal a nearby campsite △\n\n"
+        helpMessage += "⌂ is TOWN, your home base.  NPCs there offer different quests and upgrades\n"
+        helpMessage += "QUEST offers you upgrades in exchange for particular prey\n"
+        helpMessage += "SCOUT offers you upgrades if you find a particular distant camp site\n"
+        helpMessage += "TRADE offers you upgrades for free after exchanging enough loot\n\n"
+        helpMessage += "if you die, you can CHEAT to continue, or turn on DEBUG MODE below\n"
+
+
+        this.game.gameState.currentMenu = new Menu(80,30, helpMessage, 0, [
+            {text: "OK (PRESS RETURN)", result: {}},
             {text: debug_desc, result: {}},
 
         ], (m) => this.helpMenuCallback(m));
