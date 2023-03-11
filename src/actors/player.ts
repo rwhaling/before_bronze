@@ -98,10 +98,10 @@ export class Player implements Actor {
                 console.log("entering town");
                 if (this.arrows <= this.maxArrows) {
                     this.arrows = this.maxArrows;
-                    this.game.messageLog.appendText("you replenish your arrows in town;")    
+                    this.game.messageLog.appendText("You replenish your arrows in town;")    
                 }
                 if (this.game.player.hp < this.game.player.maxHp) {
-                    this.game.messageLog.appendText("your HP is replenished")
+                    this.game.messageLog.appendText("Your HP is replenished")
                 }        
                 this.game.showTownMenu();
                 return true;
@@ -138,14 +138,14 @@ export class Player implements Actor {
         if (this.hidden) {
             let r = RNG.getPercentage();
             if (r < 40) {
-                this.game.messageLog.appendText("you are no longer hidden");
+                this.game.messageLog.appendText("You are no longer hidden.");
                 this.hidden = false;
             }  
         }
         if (this.listening) {
             let r = RNG.getPercentage();
             if (r < 30) {
-                this.game.messageLog.appendText("you are no longer attuned to your surroundings");
+                this.game.messageLog.appendText("You are no longer attuned to your surroundings.");
                 this.listening = false;
             }  
 
@@ -190,17 +190,17 @@ export class Player implements Actor {
             this.food -= 1
         } 
         if (this.food < 0) {
-            this.game.messageLog.appendText("you starved.");
+            this.game.messageLog.appendText("You starved.");
             this.game.gameState.currentMenu = this.getDeathMenu();
         }
         if (this.food <= 5 && this.hunger == 0) {
-            this.game.messageLog.appendText("you are very hungry - find food soon or you will starve!")
+            this.game.messageLog.appendText("You are very hungry - find food soon or you will starve!")
         }
     }
 
     checkHp(): void {
         if (this.hp <= 0) {
-            this.game.messageLog.appendText("you were killed.");
+            this.game.messageLog.appendText("You were killed.");
             this.game.gameState.currentMenu = this.getDeathMenu();
         }
     }
@@ -255,7 +255,7 @@ export class Player implements Actor {
             return;
         }
         if (this.arrows <= 0) {
-            this.game.messageLog.appendText("you are out of arrows")
+            this.game.messageLog.appendText("You are out of arrows")
             console.log("no arrows");
             return
         }
@@ -283,7 +283,7 @@ export class Player implements Actor {
             }
             return
         } else {
-            this.game.messageLog.appendText("you must aim [R] before firing your bow")
+            this.game.messageLog.appendText("You must aim [R] before firing your bow.")
             console.log("no target!")
             return
         }
@@ -298,7 +298,7 @@ export class Player implements Actor {
             else { return 0 }    
         } else if (this.archeryLevel === 2) {
             if (dist <= 2) { return 80; }
-            else if (dist <= 3) { return 50; } 
+            else if (dist <= 3) { return 60; } 
             else if (dist <= 4) { return 20; }
             else { return 0 }    
         } else if (this.archeryLevel === 3) {
@@ -316,7 +316,7 @@ export class Player implements Actor {
         } else {
             return
         }
-        let message = "you listen carefully to your surroundings"
+        let message = "You listen carefully to your surroundings."
         if (listenCost > 0) {
             message += ` [-${listenCost} food]`
         }
@@ -346,7 +346,7 @@ export class Player implements Actor {
         } else {
             return
         }
-        this.game.messageLog.appendText(`you hide amidst some tall grasses [-${hideCost} food]`);
+        this.game.messageLog.appendText(`You hide amidst some tall grasses [-${hideCost} food]`);
 
         this.hidden = true;
         return;
@@ -358,7 +358,7 @@ export class Player implements Actor {
         if (this.food > scoutCost) {
             this.food -= scoutCost;
         } else {
-            this.game.messageLog.appendText("you are too hungry! find more food quickly, before you starve!")
+            this.game.messageLog.appendText("You are too hungry! find more food quickly, before you starve!")
             return
         }
 
@@ -399,11 +399,24 @@ export class Player implements Actor {
 
     private showStatus(): void {
         let statusMenuText = "  STATUS  \n\n";
-        statusMenuText += `  VISION: 4 + ${this.visDistBonus}\n- you can see creatures up to ${4 + this.visDistBonus} squares away\n`;
-        statusMenuText += `  HEARING: 7 + ${this.listenBonus}\n- you can hear creatures up to ${7 + this.listenBonus} squares away\n(costs 1 food)`;
-        statusMenuText += `  STEALTH: ${this.stealthBonus}\n- creatures can see you ${this.stealthBonus} fewer squares away than normal\n`;
-        statusMenuText += `  HIDE: most creatures cannot see you (costs )`
-        this.game.gameState.currentMenu = new Menu(60,30, statusMenuText, 0, [
+        statusMenuText += `--VISION--\nYou can see creatures up to ${5 + this.visDistBonus} squares away\n`;
+        if (this.stealthBonus > 0) {
+            statusMenuText += `--STEALTH--\nCreatures can see you ${this.stealthBonus} fewer squares away\n`;
+        }
+        statusMenuText += `--LISTEN--\nYou can hear creatures up to ${8 + this.listenBonus} squares away\n(costs ${1 - this.listenCostBonus} food)\n`;
+        statusMenuText += `--HIDE--\nMost creatures cannot see you while hidden\n(costs ${2 - this.hideCostBonus} food)\n`
+        statusMenuText += `--SCOUT--\nYou can explore the area, and reveal nearby camps\n(costs ${4 - this.scoutCostBonus} food)\n`
+        if (this.archeryLevel === 1) {
+            statusMenuText += `--AIM--\nYou must aim at a nearby target before firing your bow\n`
+            statusMenuText += `--FIRE--\nOnce aimed, you can fire your bow (less accurate at range 3+, costs 1 arrow)\n`
+        } else if (this.archeryLevel === 2) {
+            statusMenuText += `--AIM--You must aim at a nearby target before firing your bow\n`
+            statusMenuText += `--FIRE--Once aimed, you can fire your bow (less accurate at range 4+, costs 1 arrow)\n`
+        } else if (this.archeryLevel === 3) {
+            statusMenuText += `--AIM--You must aim at a nearby target before firing your bow\n`
+            statusMenuText += `--FIRE--Once aimed, you can fire your bow (less accurate at range 5+, costs 1 arrow)\n`
+        }
+        this.game.gameState.currentMenu = new Menu(80,30, statusMenuText, 0, [
             {text: "OK (PRESS RETURN)", result: {}},
         ], (m) => { console.log("status menu callback?"); return true});
 
@@ -427,17 +440,17 @@ export class Player implements Actor {
             debug_desc = "DISABLE DEBUG MODE"
         }
         let helpMessage = "HELP\n"
-        helpMessage += "Don't starve.  Catch animals, and trade them in town or camp for more food\n"
+        helpMessage += "Try not to starve.\nCatch animals, and trade them in town or camp for more food.\n"
         helpMessage += "Use ASDW to move, or QEZC to move diagonally.\n\n"
         helpMessage += "You have skills that can help you, but they all consume more food -\n"
         helpMessage += "[1] LISTENS to your surroundings and locates nearby creatures\n"
         helpMessage += "[2] HIDES so that your prey does not detect you\n"
         helpMessage += "[3] SCOUTS the surrounding area, and may reveal a nearby campsite △\n\n"
-        helpMessage += "⌂ is TOWN, your home base.  NPCs there offer different quests and upgrades\n"
-        helpMessage += "QUEST offers you upgrades in exchange for particular prey\n"
-        helpMessage += "SCOUT offers you upgrades if you find a particular distant camp site\n"
-        helpMessage += "TRADE offers you upgrades for free after exchanging enough loot\n\n"
-        helpMessage += "if you die, you can CHEAT to continue, or turn on DEBUG MODE below\n"
+        helpMessage += "⌂ is TOWN, your home base.  NPCs there offer different quests and upgrades:\n"
+        helpMessage += "QUEST offers you upgrades in exchange for particular prey,\n"
+        helpMessage += "SCOUT offers you upgrades if you find a particular distant camp site,\n"
+        helpMessage += "TRADE offers you upgrades for free after exchanging enough loot.\n\n"
+        helpMessage += "If you die, you can CHEAT to continue, or turn on DEBUG MODE below.\n"
 
 
         this.game.gameState.currentMenu = new Menu(80,30, helpMessage, 0, [
