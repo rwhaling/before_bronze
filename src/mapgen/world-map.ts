@@ -7,6 +7,7 @@ import { noise2 } from "./perlin";
 // import { SimplexNoise, mkSimplexNoise } from "./simplex";
 import { lighten, darken } from "../color"
 import { Biome, mkBiomes, mkCells } from "./voronoi";
+import * as _ from "lodash";
 
 export class WorldMap {
     private map: { [key: string]: Tile };
@@ -35,11 +36,19 @@ export class WorldMap {
         this.map = {};
         this.cells = mkCells(width,height);
         this.biomes = mkBiomes(this.cells,width,height);
+        console.log("validating map");
+        let valid = this.validateBiomes();
+        while (!valid) {
+            console.log("WARNING: regenerating map")
+            this.cells = mkCells(width,height);
+            this.biomes = mkBiomes(this.cells,width,height);
+            valid = this.validateBiomes();
+        }
         this.mapSize = this.game.mapSize;
         this.fullMapSize = { width: width, height: height };
         this.mapScale = { width: width / this.mapSize.width, height: height / this.mapSize.height }
         for (let i of this.biomes) {
-            console.log("creating random point for biome ",i)
+            // console.log("creating random point for biome ",i)
             let tries = 10;
             let t = 0;
             while (t < tries) {
@@ -55,6 +64,23 @@ export class WorldMap {
         }
         console.log("cells",this.cells);
         console.log("biomes",this.biomes);
+    }
+
+    validateBiomes(): boolean {
+        let counts = _.countBy(this.biomes, b => b.name)
+        console.log("counts",counts);
+        if (!counts["lightForest"]) {
+            return false;
+        } else if (!counts["steppe"]) {
+            return false;
+        } else if (!counts["grasslands"]) {
+            return false;
+        } else if (!counts["scrublands"]) { 
+            return false;
+        } else if (!counts["darkForest"]) {
+            return false;
+        }
+        return true
     }
 
     gameToMapScale(p: Point): Point {

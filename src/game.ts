@@ -11,7 +11,6 @@ import { Glyph } from "./glyph";
 import { ActionLine } from "./ui/action-line";
 import { StatusLine } from "./status-line";
 import { MessageLog } from "./message-log";
-import { Menu } from "./menu";
 import { InputUtility } from "./input-utility";
 import { Tile, TileType } from "./tile";
 import { WorldMap } from "./mapgen/world-map";
@@ -55,7 +54,7 @@ export class Game {
         this.statusLinePosition = new Point(0, this.gameSize.height - 7);
         this.actionLogPosition = new Point(0, this.gameSize.height - 6);
 
-        this.debugMode = true;
+        this.debugMode = false;
 
         this.display = new Display({
             width: this.gameSize.width,
@@ -276,12 +275,13 @@ export class Game {
 
             if (this.gameState.currentMenu) {
                 let menu = this.gameState.currentMenu;
+                let l_offset = (this.mapSize.width / 2) - (menu.width / 2)
                 console.log("drawing menu",menu);
-                this.drawBox(40,8,35,30,"black");
+                this.drawBox(l_offset,8,menu.width,30,"black");
                 let offset = 1;
                 // let t = padCenter(menu.text, 20, "");
                 for (let line of menu.text.split("\n")) {
-                    this.display.drawText(44, 8 + offset, `%b{black}%c{white}${line}`)                
+                    this.display.drawText(l_offset + 4, 8 + offset, `%b{black}%c{white}${line}`)                
                     offset += 1
                 }
                 // let t = Util.format("%b{black}%s", menu.text)
@@ -293,10 +293,10 @@ export class Game {
 
                     if (i == menu.currentSelection) {
                         let t = `%b{yellow}%c{black} * ${m.text}`
-                        this.display.drawText(46, 8 + offset, t);                            
+                        this.display.drawText(l_offset + 6, 8 + offset, t);                            
                     } else {
                         let t = Util.format("%b{black}- %s", m.text)
-                        this.display.drawText(46, 8 + offset, t);
+                        this.display.drawText(l_offset + 6, 8 + offset, t);
                     }
                     offset += 1;
                 }
@@ -343,8 +343,9 @@ export class Game {
                 if (this.player.target === c && c.vis === Vis.Seen) {
                     spawn_bg = "black"
                 }
-
-                this.draw(scaled_spawn_pos, s.glyph, spawn_bg);
+                if (c.vis === Vis.Seen || this.debugMode) {
+                    this.draw(scaled_spawn_pos, s.glyph, spawn_bg);
+                }
             }
 
             let townbg = this.map.getTileBiome(this.town.position.x, this.town.position.y).baseColor;

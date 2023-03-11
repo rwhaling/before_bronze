@@ -14,7 +14,7 @@ interface MenuItem {
 type MenuCallback = (Menu) => boolean;
 
 export class Menu {
-    constructor(private width: number, private height: number, public text: string, public currentSelection: number, public selections: Array<MenuItem>, private callback?: MenuCallback) {
+    constructor(public width: number, public height: number, public text: string, public currentSelection: number, public selections: Array<MenuItem>, private callback?: MenuCallback) {
 
     }
 

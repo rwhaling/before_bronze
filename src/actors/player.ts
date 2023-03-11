@@ -19,6 +19,8 @@ export class Player implements Actor {
     listening: boolean;
     food: number;
     maxFood: number; 
+    hp: number;
+    maxHp: number;
     hunger: number;
     loot: Array<string>;
     archeryLevel: number;
@@ -38,16 +40,18 @@ export class Player implements Actor {
     private numKeys: { [key: number]: () => void}
 
     constructor(private game: Game, public position: Point) {
-        this.glyph = new Glyph("@", "yellow","#32926F");
+        this.glyph = new Glyph("@", "white","#32926F");
         this.type = ActorType.Player;
         this.minNoise = 0;
         this.maxNoise = 25;
         this.hidden = false;
         this.listening = false;
         this.noise = 0;
-        this.food = 20;
-        this.maxFood = 20;
+        this.food = 25;
+        this.maxFood = 25;
         this.hunger = 0;
+        this.hp = 1;
+        this.maxHp = 1;
         this.loot = [];        
         this.archeryLevel = 0;
         this.arrows = 5;
@@ -96,6 +100,15 @@ export class Player implements Actor {
                 return true;
             } else if (actor.type === ActorType.Critter) {
                 let critter = actor as Critter;
+                critter.hp -= 1;
+                if (critter.hp > 1) {
+                    this.game.messageLog.appendText(`You attacked the ${critter.name} with your spear for 1 hp damage!`);
+                    this.target.playerVis = Vis.Seen;
+                    if (this.target.aggressiveChance > 0) {
+                        this.target.aggressive = true;
+                    }
+                    return true;
+                }
                 console.log("caught critter ", critter.name);
                 this.game.messageLog.appendText(`You caught a ${critter.name}!`);
                 this.game.spawner.despawn(actor);
@@ -159,7 +172,7 @@ export class Player implements Actor {
         } else if (code === KEYS.VK_SPACE || code === KEYS.VK_X) {
             this.updateVis();
             validInput = true;
-            this.noise = this.noise - 15 < this.minNoise ? this.minNoise : this.noise - 15;
+            this.noise = this.noise - 10 < this.minNoise ? this.minNoise : this.noise - 10;
         }
         return validInput;
     }
@@ -178,6 +191,13 @@ export class Player implements Actor {
         }
     }
 
+    checkHp(): void {
+        if (this.hp <= 0) {
+            this.game.messageLog.appendText("you were killed.");
+            this.game.gameState.currentMenu = this.getDeathMenu();
+        }
+    }
+
     private getDeathMenu(): Menu {
         let message = "You have died.  Dawn of Bronze is a difficult game\nfeaturing PERMANENT DEATH.\n\nDo you wish to CHEAT?\n"
         return new Menu(60, 30, "GAME OVER\n\n" + message, 0, [
@@ -189,6 +209,7 @@ export class Player implements Actor {
         console.log("death menu callback?"); 
         this.game.gameState.cheatCount += 1;
         this.food = this.maxFood;
+        this.hp = this.maxHp;
         this.position = this.game.startingPoint;
         return true
     }
@@ -238,6 +259,15 @@ export class Player implements Actor {
             this.arrows -= 1;
             let r = RNG.getUniformInt(0,100);
             if (r < accuracy) {
+                this.target.hp -= 1;
+                if (this.target.hp >= 1) {
+                    this.game.messageLog.appendText(`You attacked the ${this.target.name} with your spear for 1 hp damage!`);
+                    this.target.playerVis = Vis.Seen;
+                    if (this.target.aggressiveChance > 0) {
+                        this.target.aggressive = true;
+                    }
+                    return ;
+                }
                 this.game.messageLog.appendText(`You shot a ${this.target.name}!`);
                 this.game.spawner.despawn(this.target);
                 this.loot.push(this.target.name);    
@@ -317,7 +347,7 @@ export class Player implements Actor {
 
     private scout(): void {
         let biome = this.game.getTileBiome(this.position.x,this.position.y);
-        let scoutCost = 5 - this.scoutCostBonus;
+        let scoutCost = 4 - this.scoutCostBonus;
         if (this.food > scoutCost) {
             this.food -= scoutCost;
         } else {
@@ -349,7 +379,7 @@ export class Player implements Actor {
         statusMenuText += `  HEARING: 7 + ${this.listenBonus}\n- you can hear creatures up to ${7 + this.listenBonus} squares away\n(costs 1 food)`;
         statusMenuText += `  STEALTH: ${this.stealthBonus}\n- creatures can see you ${this.stealthBonus} fewer squares away than normal\n`;
         statusMenuText += `  HIDE: most creatures cannot see you (costs )`
-        this.game.gameState.currentMenu = new Menu(40,30, statusMenuText, 0, [
+        this.game.gameState.currentMenu = new Menu(60,30, statusMenuText, 0, [
             {text: "OK", result: {}},
         ], (m) => { console.log("status menu callback?"); return true});
 
@@ -361,18 +391,31 @@ export class Player implements Actor {
         for (let l in loot) {
             invMenuText += `${loot[l]} ${l}\n`
         }
-        this.game.gameState.currentMenu = new Menu(40,30, invMenuText, 0, [
+        this.game.gameState.currentMenu = new Menu(60,30, invMenuText, 0, [
             {text: "OK", result: {}},
         ], (m) => { console.log("inv menu callback?"); return true});
 
     }
 
     private showHelpMenu(): void {
-        this.game.gameState.currentMenu = new Menu(40,30, "Help menu TBD\n\n", 0, [
+        let debug_desc = "DEBUG ON"
+        if (this.game.debugMode) {
+            debug_desc = "DEBUG OFF"
+        }
+        this.game.gameState.currentMenu = new Menu(60,30, "Help menu TBD\n\n", 0, [
             {text: "OK", result: {}},
-        ], (m) => { console.log("help menu callback?"); return true});
+            {text: debug_desc, result: {}},
+
+        ], (m) => this.helpMenuCallback(m));
         return
     
+    }
+
+    private helpMenuCallback(m:Menu): boolean {
+        if (m.currentSelection === 1 ) {
+            this.game.debugMode = (!this.game.debugMode);
+        }
+        return true;
     }
 
     updateVis(): void {

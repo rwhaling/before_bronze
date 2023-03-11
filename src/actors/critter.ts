@@ -16,18 +16,33 @@ export enum Vis {
 export class Critter implements Actor {
     type: ActorType.Critter;
     vis: Vis;
+    visChanceBonus: number;
     visDistBonus: number;
     playerVis: Vis;
-    moveChance: number
+    moveChance: number;
+    aggressiveChance: number;
+    aggressive: boolean;
+    turnsSeen: number;
+    hp: number;
+    foodValue: number;
     rng: () => number;
 
-    constructor(private game: Game, public name: string, public position: Point, public glyph: Glyph, visDistBonus?: number) {
+    constructor(private game: Game, public name: string, public position: Point, public glyph: Glyph, visDistBonus?: number, hp?: number, aggressiveChance?: number, params?: any) {
+        if (!params) {
+            params = {};
+        }
         this.type = ActorType.Critter;
         this.rng = d3.randomLcg();
         this.vis = Vis.NotSeen;
+        this.visChanceBonus = params.visChanceBonus || 0;
         this.visDistBonus = visDistBonus || 0;
         this.moveChance = 35 + d3.randomInt(0,15)();
+        this.hp = hp || 1;
+        this.aggressiveChance = aggressiveChance || 0;
+        this.foodValue = params.foodValue || 2;
 
+        this.aggressive = false;
+        this.turnsSeen = 0;
         this.playerVis = Vis.NotSeen;
         this.glyph.foregroundColor = "black";
     }
@@ -50,22 +65,48 @@ export class Critter implements Actor {
             
         } else if (this.playerVis === Vis.Seen) {
             let rand_dirs = _.shuffle(DIRS[8]);
-            let maxdist = 0;
+            this.turnsSeen += 1;
+            if (this.aggressive) {
+                // check if switch to flee?
+                let mindist = 9999                
+                for (let di = 0; di < 8; di++) {
+                    let d = rand_dirs[di];
+                    // console.log("checking flee dir: ", d)
+                    let dPoint = new Point(this.position.x + d[0], this.position.y + d[1]);
+                    let dist = this.visDist2(dPoint,this.game.getPlayerPosition());
+                    if (dist < mindist) {
+                        // console.log("new best:", d, dPoint)
+                        mindist = dist;
+                        newPoint = dPoint;
+                    }
+                }    
 
-            for (let di = 0; di < 8; di++) {
-                let d = rand_dirs[di];
-                // console.log("checking flee dir: ", d)
-                let dPoint = new Point(this.position.x + d[0], this.position.y + d[1]);
-                let dist = this.visDist2(dPoint,this.game.getPlayerPosition());
-                if (dist > maxdist) {
-                    // console.log("new best:", d, dPoint)
-                    maxdist = dist;
-                    newPoint = dPoint;
-                }
+            } else {
+                // check if time to despawn?
+                let maxdist = 0;
+                for (let di = 0; di < 8; di++) {
+                    let d = rand_dirs[di];
+                    // console.log("checking flee dir: ", d)
+                    let dPoint = new Point(this.position.x + d[0], this.position.y + d[1]);
+                    let dist = this.visDist2(dPoint,this.game.getPlayerPosition());
+                    if (dist > maxdist) {
+                        // console.log("new best:", d, dPoint)
+                        maxdist = dist;
+                        newPoint = dPoint;
+                    }
+                }    
             }
         }
-
-        if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {
+        // check if initiating combat here?
+        if (this.aggressive && newPoint.x === this.game.getPlayerPosition().x && newPoint.y === this.game.getPlayerPosition().y) {
+            console.log("attacking");
+            this.game.player.hp -= 1;
+            this.game.messageLog.appendText(`the ${this.name} gores you for 1 HP damage`);
+            this.game.player.checkHp(); // arguably better in player's turn
+            return Promise.resolve();
+        }
+        else if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {
+            console.log("stopping, cannot approach further");
             return Promise.resolve();
         } else {
             this.position = newPoint;
@@ -92,11 +133,21 @@ export class Critter implements Actor {
         let minDist = 3 + this.visDistBonus - player.stealthBonus;
         if (dist <= minDist) {
             if (this.playerVis !== Vis.Seen) {
+                let threshold = player.noise + this.visChanceBonus
                 let r = RNG.getPercentage();
-                if (r <= player.noise && !player.hidden) {
-                    this.playerVis = Vis.Seen;
-                    this.glyph.foregroundColor = "yellow";
-                    this.game.messageLog.appendText("the " + this.name + " sees you and flees!");
+                // noise should probably be higher?
+                if (r <= threshold && !player.hidden) {
+                    let agg_chance = RNG.getPercentage();
+                    if (agg_chance < this.aggressiveChance) {
+                        this.aggressive = true;
+                        this.playerVis = Vis.Seen;
+                        this.glyph.foregroundColor = "red";
+                        this.game.messageLog.appendText("the " + this.name + " charges at you!");
+                    } else {
+                        this.playerVis = Vis.Seen;
+                        this.glyph.foregroundColor = "yellow";
+                        this.game.messageLog.appendText("the " + this.name + " sees you and flees!");    
+                    }
                 }    
             }
         }

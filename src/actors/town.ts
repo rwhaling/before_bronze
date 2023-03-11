@@ -7,6 +7,12 @@ import { Menu } from "../menu";
 import * as _ from "lodash";
 import { Biome } from "../mapgen/voronoi";
 
+interface TradeUpgrade {
+    quantity: number,
+    description: string,
+    reward?: string
+}
+
 interface ScoutMission {
     target: Camp,
     description: string,
@@ -100,7 +106,7 @@ export class Town implements Actor {
     }
 
     getTownMenu(): Menu {
-        return new Menu(40,30, "  TOWN  ", 0, [
+        return new Menu(60,30, "  TOWN  ", 0, [
             {text: "TRADE", result: {}},
             {text: "QUESTS", result: {}},
             {text: "SCOUT", result: {}},
@@ -124,7 +130,7 @@ export class Town implements Actor {
         console.log("loot:", _.countBy( this.game.player.loot));
         let loot_value = this.getTradeValue();
 
-        return new Menu(40,30, "Welcome to the trading post", 0, [
+        return new Menu(60,30, "Welcome to the trading post", 0, [
             {text: `TRADE : +${loot_value} food`, result: {}},
             {text: "UPGRADE: - 25 food", result: {}},
             {text: "BACK", result: {}},
@@ -161,7 +167,16 @@ export class Town implements Actor {
     }
     
     getItemTradeValue(i:string): number {
-        return 2
+        // ugh
+        if (i === "squirrel" || i === "quail") {
+            return 2
+        } else if (i === "boar" || i === "deer" || i === "grouse") {
+            return 4
+        } else if (i === "moose") {
+            return 5
+        } else {
+            return 3
+        }
     }
 
     tradeLoot(): number {
@@ -183,7 +198,7 @@ export class Town implements Actor {
         let q = this.quests[this.currentQuest];
 
         let menuText = "  QUEST HUB  \n\n" + q.description;
-        return new Menu(40,30, menuText, 0, [
+        return new Menu(60,30, menuText, 0, [
             {text: `TURN IN : ${q.quantity} ${q.target}`, result: {}},
             {text: "BACK", result: {}},
             {text: "LEAVE", result: {}},
@@ -239,7 +254,7 @@ export class Town implements Actor {
 
         let menuText = "  SCOUT  \n\n" + currentMission.description;
         console.log("current mission target:",currentMission);
-        return new Menu(40,30, menuText, 0, [
+        return new Menu(60,30, menuText, 0, [
             {text: `TURN IN`, result: {}},
             {text: "BACK", result: {}},
             {text: "LEAVE", result: {}},
@@ -310,6 +325,7 @@ export class Town implements Actor {
         let loot_value = this.getTradeValue();
 
         let this_camp = this.game.getNearestCamp(this.game.player.position.x, this.game.player.position.y)[0];
+        this_camp.discovered = true;
         let currentMission = this.missions[this.currentMission];
 
         let target_camp = currentMission.target
@@ -324,7 +340,7 @@ export class Town implements Actor {
             camp_description = `This is a good spot, but not the one you were looking for;\n based on the SCOUT's directions, you should check\n in the ${target_biome} to the ${target_direction}`
         }
 
-        return new Menu(40,30, "  CAMP  \n"+camp_description, 0, [
+        return new Menu(60,30, "  CAMP  \n"+camp_description, 0, [
             {text: `REST: +${loot_value} food`, result: {}},
             {text: "LEAVE", result: {}},
         ], (m) => this.campMenuCallback(m));        

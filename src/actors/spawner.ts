@@ -50,6 +50,14 @@ export class Spawner implements Actor {
                 if (dist > 14) {
                     to_despawn.push(spawn);
                 }
+                let critter = spawn as Critter;
+                if (critter.aggressive && critter.turnsSeen > 11) {
+                    critter.aggressive = false;
+                    critter.glyph.backgroundColor = "yellow"
+                    critter.turnsSeen = 0;
+                } else if (!critter.aggressive && critter.turnsSeen > 7) {
+                    to_despawn.push(critter)
+                }
             }
             for (let spawn of to_despawn) {
                 // console.log("despawning actor,", spawn);
@@ -129,7 +137,7 @@ export class Spawner implements Actor {
 
 
     static boar(game: Game, pos:Point): Critter {
-        return new Critter(game, "boar", pos, new Glyph("b"), 1);
+        return new Critter(game, "boar", pos, new Glyph("b"), 1, 2, 50);
     }
 
     static deer(game: Game, pos:Point): Critter {
@@ -137,7 +145,7 @@ export class Spawner implements Actor {
     }
 
     static fox(game: Game, pos:Point): Critter {
-        return new Critter(game, "fox", pos, new Glyph("f"), 2);
+        return new Critter(game, "fox", pos, new Glyph("f"), 2, 1, 25);
     }
 
     static grouse(game: Game, pos:Point): Critter {
@@ -149,7 +157,7 @@ export class Spawner implements Actor {
     }
 
     static moose(game: Game, pos:Point): Critter {
-        return new Critter(game, "moose", pos, new Glyph("m"));
+        return new Critter(game, "moose", pos, new Glyph("M"), 3, 3, 100);
     }
 
     static partridge(game: Game, pos:Point): Critter {
