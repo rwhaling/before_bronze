@@ -187,7 +187,7 @@ export class Town implements Actor {
         console.log("trade callback?",m);
         if (m.currentSelection === 0) {
             let loot_value = this.tradeLoot();
-            let message = `you hand over your loot and receive ${loot_value} food`;
+            let message = `You hand over your loot and receive ${loot_value} food,`;
             this.game.messageLog.appendText(message);
             this.tradeTotal += loot_value;
 
@@ -208,7 +208,7 @@ export class Town implements Actor {
                 }
                 return true;
             } else {
-                let message = `bring ${upgrade_remaining} more food first`;
+                let message = `Bring ${upgrade_remaining} more food first.`;
                 this.game.messageLog.appendText(message);
                 this.game.gameState.currentMenu = this.getTradeMenu();
                 return true;
@@ -311,18 +311,18 @@ export class Town implements Actor {
                     let idx = _.findIndex(this.game.player.loot,q.target);
                     this.game.player.loot.splice(idx,1);
                 }
-                let message = `you hand over ${q.quantity} ${q.target}s`;
+                let message = `You hand over [${q.quantity} ${q.target}].`;
                 this.game.messageLog.appendText(message);
                 this.applyQuestReward(q.reward);
                 this.currentQuest += 1;
                 if (this.currentQuest >= this.quests.length) {
                     this.currentQuest -= 1;
-                    this.game.messageLog.appendText("congratulations, you have finished DAWN OF BRONZE")
+                    this.game.messageLog.appendText("CONGRATULATIONS, you have finished DAWN OF BRONZE")
                     return true;
                 }
                 return true;
             } else {
-                let message = `you don't have ${q.quantity} ${q.target}s`;
+                let message = `You don't have [${q.quantity} ${q.target}].`;
                 this.game.messageLog.appendText(message);
 
                 this.game.gameState.currentMenu = this.getQuestMenu();
@@ -362,7 +362,7 @@ export class Town implements Actor {
         if (m.currentSelection === 0) {
             let missionReady = currentMission.target.discovered || this.game.debugMode;
             if (missionReady) {
-                let message = `you describe the location to the scout`;
+                let message = `You describe the location to the scout.`;
                 this.game.messageLog.appendText(message);
                 this.applyQuestReward(currentMission.reward);
                 // TODO: check
@@ -374,7 +374,7 @@ export class Town implements Actor {
                 }
                 return true;
             } else {
-                let message = `you haven't found the location yet (there may be other campsites in the region)`;
+                let message = `You haven't found the location yet (there may be other campsites in the region).`;
                 this.game.messageLog.appendText(message);
                 return true;
             }
@@ -386,52 +386,52 @@ export class Town implements Actor {
     applyQuestReward(r:string): void {
         console.log("quest reward", r)
         if (r === "bow_1") {
-            this.game.messageLog.appendText("you received a bow! use [R] to aim and [F] to fire")
+            this.game.messageLog.appendText("You received a bow! use [R] to aim and [F] to fire.")
             this.game.player.archeryLevel = 1;
         } else if (r === "bow_2") {
-            this.game.messageLog.appendText("your archery skills have improved, and you are more accurate at longer range")
+            this.game.messageLog.appendText("Your archery skills have improved, and you are more accurate at longer range.")
             this.game.player.archeryLevel = 2;
             this.game.player.arrows = 8;
             this.game.player.maxArrows = 8;
         } else if (r === "bow_3") {
-            this.game.messageLog.appendText("your have mastered the art of archery, and you are highly accurate at extended range")
+            this.game.messageLog.appendText("You have mastered the art of archery, and you are highly accurate at extended range.")
             this.game.player.archeryLevel = 3;
             this.game.player.arrows = 12;
             this.game.player.maxArrows = 12;
         } else if (r === "scout") {
-            this.game.messageLog.appendText("you are more efficient at scouting, and will consume significantly less time, and food, when doing so")
+            this.game.messageLog.appendText("You are more efficient at scouting, and will consume significantly less time, and food, when doing so.")
             this.game.player.scoutCostBonus += 2;
         } else if (r === "stealth") {
-            this.game.messageLog.appendText("you are more stealthy, and listening to your surrounding will consume less food") // todo, clarify
+            this.game.messageLog.appendText("You are more stealthy, and listening to your surrounding will consume less food.") // todo, clarify
             this.game.player.stealthBonus += 2;
             this.game.player.listenCostBonus += 1;
         } else if (r === "hide") {
-            this.game.messageLog.appendText("you can move faster while remaining hidden, and will consume less food") // todo, clarify
+            this.game.messageLog.appendText("You can move faster while remaining hidden, and will consume less food.") // todo, clarify
             this.game.player.hideCostBonus += 1;
             // todo
         } else if (r === "vision") {
-            this.game.messageLog.appendText("with your deep understanding of the land, you can detect creatures from further away") // todo, clarify
+            this.game.messageLog.appendText("With your deep understanding of the land, you can detect creatures from further away.") // todo, clarify
             this.game.player.visDistBonus += 2;
         } else if (r === "listen") {
-            this.game.messageLog.appendText("you can remain deeply attuned with your surroundings, while moving faster, and consuming less food")
+            this.game.messageLog.appendText("You can remain deeply attuned with your surroundings, while moving faster, and consuming less food.")
             this.game.player.listenBonus += 3;
         } else if (r === "food_1") {
-            this.game.messageLog.appendText("you exchange your satchel for a larger one, you can now hold 35 food")
-            this.game.messageLog.appendText("(the trader tops you up as a token of gratitude)")
+            this.game.messageLog.appendText("You exchange your satchel for a larger one, you can now hold 35 food.")
+            this.game.messageLog.appendText("(The trader tops you up as a token of gratitude)")
             this.game.player.maxFood = 35;
             this.game.player.food = 35;
         } else if (r === "food_2") {
-            this.game.messageLog.appendText("you exchange your satchel for an even larger one, you can now hold 60 food")
-            this.game.messageLog.appendText("(the trader tops you up as a token of gratitude)")
+            this.game.messageLog.appendText("You exchange your satchel for an even larger one, you can now hold 60 food.")
+            this.game.messageLog.appendText("(The trader tops you up as a token of gratitude)")
             this.game.player.maxFood = 60;
             this.game.player.food = 60;
         } else if (r === "food_3") {
-            this.game.messageLog.appendText("you exchange your satchel for a huge one, you can now hold 100 food")
-            this.game.messageLog.appendText("(the trader tops you up as a token of gratitude)")
+            this.game.messageLog.appendText("You exchange your satchel for a huge one, you can now hold 100 food.")
+            this.game.messageLog.appendText("(The trader tops you up as a token of gratitude)")
             this.game.player.maxFood = 100;
             this.game.player.food = 100;
         } else if (r === "hp") {
-            this.game.messageLog.appendText("you grow stronger as you and your community become ever more well-fed, your hp increases")
+            this.game.messageLog.appendText("You grow stronger as you and your community become ever more well-fed, your hp increases.")
             this.game.player.maxHp = 2;
             this.game.player.hp = 2;
         }
@@ -451,17 +451,17 @@ export class Town implements Actor {
             this.game.messageLog.appendText("your HP is replenished")
         }
 
-        let camp_description: "This is a good hunting camp, sheltered from the elements and dangers of the surrounding area.\n";
+        let camp_description = `This is a good hunting camp, sheltered from the surrounding ${this_camp.biome.name}.\n`;
         camp_description += "You can field-dress your loot here in exchange for meat, if you wish\n (it will not count toward upgrades in town)\n\n"
         if (target_camp === this_camp) {
-            camp_description += "You reached the location you were searching for;\nreturn to the SCOUT in town for a reward"
+            camp_description += "You have reached the location you were searching for;\nreturn to the SCOUT in town for a reward"
         } else {
             let target_direction = this.game.getCardinalDirection(this_camp.position.x, this_camp.position.y, target_camp.position.x, target_camp.position.y)
             let target_biome = target_camp.biome.name
             camp_description += `This is a good spot, but not the one you were looking for;\n based on the SCOUT's directions, you should check\n in the ${target_biome} to the ${target_direction}`
         }
 
-        return new Menu(60,30, "  CAMP  \n"+camp_description, 0, [
+        return new Menu(80,30, "  CAMP  \n"+camp_description, 0, [
             {text: `REST: +${loot_value} food`, result: {}},
             {text: "LEAVE", result: {}},
         ], (m) => this.campMenuCallback(m));        
@@ -473,7 +473,7 @@ export class Town implements Actor {
             let loot_value = this.tradeLoot();
 
             this.game.gameState.currentMenu = this.getCampMenu();
-            let message = `you field dress your loot for ${loot_value} food`;
+            let message = `You field dress your loot for ${loot_value} food`;
             this.game.messageLog.appendText(message);
         }
 

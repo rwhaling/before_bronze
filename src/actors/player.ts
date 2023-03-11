@@ -362,7 +362,7 @@ export class Player implements Actor {
             return
         }
 
-        this.game.messageLog.appendText(`You scout the surrounding ${biome.name}; press any key when don. [-${scoutCost} food]`);
+        this.game.messageLog.appendText(`You scout the surrounding ${biome.name}; press any key when done. [-${scoutCost} food]`);
         this.game.messageLog.appendText(this.getBiomeDescription(biome));        
 
         // this.game.messageLog.appendText()
