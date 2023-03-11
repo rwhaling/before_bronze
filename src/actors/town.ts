@@ -45,6 +45,9 @@ export class Town implements Actor {
     quests: Array<Quest>;
     currentQuest?: number;
     camps: Array<Camp>;
+    currentUpgrade: number;
+    upgrades: Array<TradeUpgrade>;
+    tradeTotal: number;
 
     constructor(private game: Game, private map: WorldMap, public startingBiome: Biome, public position: Point) {
         this.glyph = new Glyph("⌂", "yellow", "#32926F");
@@ -57,11 +60,11 @@ export class Town implements Actor {
             { target: "rabbit", quantity: 2, 
               description:`first, catch me some rabbits \nfrom the woods nearby.`, reward:"hide"},
             { target: "deer", quantity: 2,
-              description:`take your bow and hunt me \n2 deer from the taiga in the ${biome_dir("darkForest")}`, reward:"bow_1"},
+              description:`take your bow and hunt me \n2 deer from the forest in the ${biome_dir("forest")}`, reward:"bow_1"},
             { target: "boar", quantity: 3, 
             description:`bring me 3 wild boars \nfrom the grasslands in the ${biome_dir("grasslands")}`, reward:"bow_2"},
             { target: "moose", quantity: 1,
-              description:`this is your final quest.\nbring me a moose from the dark forest in the ${biome_dir("darkForest")}`, reward:"bow_3"}
+              description:`this is your final quest.\nbring me a moose from the taiga in the ${biome_dir("taiga")}`, reward:"bow_3"}
         ]
         this.currentQuest = 0;
 
@@ -82,10 +85,10 @@ export class Town implements Actor {
         }
 
         {
-            let forestCamp: Camp = _.find(this.camps, c => c.biome.name === "lightForest" && c.biome != this.startingBiome);
+            let forestCamp: Camp = _.find(this.camps, c => c.biome.name === "forest" && c.biome != this.startingBiome);
             let grasslandCamp: Camp = _.find(this.camps, c => c.biome.name === "grasslands");
             let steppeCamp: Camp = _.find(this.camps, c => c.biome.name === "steppe");
-            let darkForestCamp: Camp = _.find(this.camps, c => c.biome.name === "darkForest");
+            let darkForestCamp: Camp = _.find(this.camps, c => c.biome.name === "taiga");
 
             this.missions = [
                 { target: forestCamp,
@@ -103,6 +106,27 @@ export class Town implements Actor {
             ];
             this.currentMission = 0;
         }
+
+        this.upgrades = [
+            { quantity: 15,
+              description: "food satchel upgrade (max 35)",
+              reward: "food_1"},
+            { quantity: 25,
+              description: "food satchel upgrade (max 60)",
+              reward: "food_2"},
+            { quantity: 35,
+              description: "food satchel upgrade (max 100)",
+              reward: "food_3"},
+            { quantity: 40,
+              description: "max hp upgrade",
+              reward: "hp"},
+                    
+        ];
+
+        this.currentUpgrade = 0;
+        this.tradeTotal = 0;
+
+
     }
 
     getTownMenu(): Menu {
@@ -130,9 +154,22 @@ export class Town implements Actor {
         console.log("loot:", _.countBy( this.game.player.loot));
         let loot_value = this.getTradeValue();
 
-        return new Menu(60,30, "Welcome to the trading post", 0, [
+        let current_upgrade = this.upgrades[this.currentUpgrade]
+        let upgrade_description = current_upgrade.description;
+
+        let upgrade_remaining = current_upgrade.quantity - this.tradeTotal;
+        let upgrade_ready = upgrade_remaining <= 0 || this.game.debugMode;
+        if (!upgrade_ready) { 
+            upgrade_description += ` (trade ${upgrade_remaining} more food)`
+        } else {
+            upgrade_description += ` (READY)`
+        }
+
+
+
+        return new Menu(80,30, "Welcome to the trading post", 0, [
             {text: `TRADE : +${loot_value} food`, result: {}},
-            {text: "UPGRADE: - 25 food", result: {}},
+            {text: `UPGRADE: ${upgrade_description}`, result: {}},
             {text: "BACK", result: {}},
             {text: "LEAVE", result: {}},
         ], (m) => this.tradeMenuCallback(m))
@@ -146,8 +183,29 @@ export class Town implements Actor {
             this.game.gameState.currentMenu = this.getTradeMenu();
             let message = `you hand over your loot and receive ${loot_value} food`;
             this.game.messageLog.appendText(message);
+            this.tradeTotal += loot_value;
 
             return true;
+        } else if (m.currentSelection === 1) {
+            let current_upgrade = this.upgrades[this.currentUpgrade]
+            let upgrade_description = current_upgrade.description;    
+            let upgrade_remaining = current_upgrade.quantity - this.tradeTotal;
+            let upgrade_ready = upgrade_remaining <= 0 || this.game.debugMode;
+            if (upgrade_ready) {
+                this.applyQuestReward(current_upgrade.reward);
+                this.currentUpgrade += 1;
+                if (this.currentUpgrade >= this.upgrades.length) {
+                    this.currentMission = this.upgrades.length - 1;
+                }
+                return true;
+            } else {
+                let message = `bring ${upgrade_remaining} more food first`;
+                this.game.messageLog.appendText(message);
+                this.game.gameState.currentMenu = this.getTradeMenu();
+                return true;
+
+            }
+    
         } else if (m.selections[m.currentSelection].text === "BACK") {
             this.game.gameState.currentMenu = this.getTownMenu();
             return true;
@@ -198,8 +256,23 @@ export class Town implements Actor {
         let q = this.quests[this.currentQuest];
 
         let menuText = "  QUEST HUB  \n\n" + q.description;
+
+        let loot =  _.countBy( this.game.player.loot);
+        let questReady = false;
+        if (this.game.debugMode === true) {
+            console.log("handing in quest, debug mode");
+            questReady = true;
+        }
+        if (loot[q.target] >= q.quantity) {
+            questReady = true;
+        }
+        let isQuestReady = ""
+        if (questReady) { isQuestReady = "(READY)"}
+
+
+
         return new Menu(60,30, menuText, 0, [
-            {text: `TURN IN : ${q.quantity} ${q.target}`, result: {}},
+            {text: `TURN IN : ${q.quantity} ${q.target} ${isQuestReady}`, result: {}},
             {text: "BACK", result: {}},
             {text: "LEAVE", result: {}},
         ], (m) => this.questMenuCallback(m))
@@ -254,8 +327,11 @@ export class Town implements Actor {
 
         let menuText = "  SCOUT  \n\n" + currentMission.description;
         console.log("current mission target:",currentMission);
+        let missionReady = currentMission.target.discovered || this.game.debugMode;
+        let isMissionReady = ""
+        if (missionReady) { isMissionReady = "(READY)"}
         return new Menu(60,30, menuText, 0, [
-            {text: `TURN IN`, result: {}},
+            {text: `TURN IN ${isMissionReady}`, result: {}},
             {text: "BACK", result: {}},
             {text: "LEAVE", result: {}},
         ], (m) => this.scoutMenuCallback(m))
@@ -264,13 +340,14 @@ export class Town implements Actor {
     scoutMenuCallback(m:Menu): boolean {
         let currentMission = this.missions[this.currentMission];
         if (m.currentSelection === 0) {
-            if (currentMission.target.discovered) {
+            let missionReady = currentMission.target.discovered || this.game.debugMode;
+            if (missionReady) {
                 let message = `you describe the location to the scout`;
                 this.game.messageLog.appendText(message);
                 // TODO: check
                 this.currentMission += 1;
                 if (this.currentMission >= this.missions.length) {
-                    this.currentQuest -= 1;
+                    this.currentMission -= 1;
                     this.game.messageLog.appendText("(there are no more missions)")
                     return true;
                 }
@@ -316,8 +393,26 @@ export class Town implements Actor {
         } else if (r === "listen") {
             this.game.messageLog.appendText("you can remain deeply attuned with your surroundings, while moving faster, and consuming less food")
             this.game.player.listenBonus += 3;
+        } else if (r === "food_1") {
+            this.game.messageLog.appendText("you exchange your satchel for a larger one, you can now hold 35 food")
+            this.game.messageLog.appendText("(the trader tops you up as a token of gratitude)")
+            this.game.player.maxFood = 35;
+            this.game.player.food = 35;
+        } else if (r === "food_2") {
+            this.game.messageLog.appendText("you exchange your satchel for an even larger one, you can now hold 60 food")
+            this.game.messageLog.appendText("(the trader tops you up as a token of gratitude)")
+            this.game.player.maxFood = 60;
+            this.game.player.food = 60;
+        } else if (r === "food_3") {
+            this.game.messageLog.appendText("you exchange your satchel for a huge one, you can now hold 100 food")
+            this.game.messageLog.appendText("(the trader tops you up as a token of gratitude)")
+            this.game.player.maxFood = 100;
+            this.game.player.food = 100;
+        } else if (r === "hp") {
+            this.game.messageLog.appendText("you grow stronger as you and your community become ever more well-fed, your hp increases")
+            this.game.player.maxHp = 2;
+            this.game.player.hp = 2;
         }
-
     }
 
     getCampMenu(): Menu {

@@ -24,7 +24,7 @@ export class Biome {
   }
 
   isForest(): boolean {
-      return this.name === "lightForest" || this.name === "darkForest";
+      return this.name === "forest" || this.name === "taiga";
   }
 
   isGrassland(): boolean {
@@ -151,24 +151,24 @@ export const mkBiomes = (geometry,width,height) => {
     let corners = [];
  
     for (let i of all_seas) {
-      console.log("checking coasts on sea:",i,Array.from(geometry.voronoi.neighbors(i)));
+      // console.log("checking coasts on sea:",i,Array.from(geometry.voronoi.neighbors(i)));
       for (let j of Array.from(geometry.voronoi.neighbors(i))) {
         if (!all_seas.includes(j)) {
           all_coasts.push(j);
           if (west_sea.includes(i)) {
-            console.log("west coast: ",j);
+            // console.log("west coast: ",j);
             west_coast.push(j);
             // tri_colors[j] = "red";
           } else if (north_sea.includes(i)) {
-            console.log("north coast: ",j);
+            // console.log("north coast: ",j);
             north_coast.push(j); 
             // tri_colors[j] = "orange";
           } else if (east_sea.includes(i)) {
-            console.log("east coast: ",j);
+            // console.log("east coast: ",j);
             east_coast.push(j);
             // tri_colors[j] = "yellow";
           } else if (south_sea.includes(i)) {
-            console.log("south coast: ",j);          
+            // console.log("south coast: ",j);          
             south_coast.push(j);
             // tri_colors[j] = "magenta";
           }
@@ -197,8 +197,8 @@ export const mkBiomes = (geometry,width,height) => {
     }
   
     let sea_options = [west_sea, north_sea, east_sea, south_sea];
-    console.log("seas:",sea_options);
-    console.log("coasts:",all_coasts);
+    // console.log("seas:",sea_options);
+    // console.log("coasts:",all_coasts);
     let coast_options = [west_coast, north_coast, east_coast, south_coast];
     let opposite_options = [east_coast, south_coast, west_coast, north_coast];
     let remaining_coasts = [[north_coast, south_coast], [east_coast, west_coast], [north_coast, south_coast], [east_coast, west_coast]];
@@ -213,7 +213,7 @@ export const mkBiomes = (geometry,width,height) => {
     let last_selection = remaining_selection == 0 ? 1 : 0;
     let select_remaining = remaining_coasts[selection];
   
-    console.log("remaining coasts", remaining_coasts, "remaining_selection", remaining_selection, "last_selection", last_selection,"select_remaining", select_remaining)
+    // console.log("remaining coasts", remaining_coasts, "remaining_selection", remaining_selection, "last_selection", last_selection,"select_remaining", select_remaining)
   
     let far_coast = select_remaining[remaining_selection];
     let near_coast = select_remaining[last_selection];    
@@ -233,11 +233,11 @@ export const mkBiomes = (geometry,width,height) => {
     }
   
     for (let i of far_coast) {
-      tri_colors[i] = new Biome("darkForest",dark_minty[d3.randomInt.source(rng)(0,4)()],i,new Point(geometry.points[i][0],geometry.points[i][1]),[]);
+      tri_colors[i] = new Biome("taiga",dark_minty[d3.randomInt.source(rng)(0,4)()],i,new Point(geometry.points[i][0],geometry.points[i][1]),[]);
     }
   
     for (let i of near_coast) {
-      tri_colors[i] = new Biome("lightForest",light_minty[d3.randomInt.source(rng)(0,4)()],i,new Point(geometry.points[i][0],geometry.points[i][1]),[]);    
+      tri_colors[i] = new Biome("forest",light_minty[d3.randomInt.source(rng)(0,4)()],i,new Point(geometry.points[i][0],geometry.points[i][1]),[]);    
     }
   
     for (let i = 0; i < geometry.n_cells; i++) {

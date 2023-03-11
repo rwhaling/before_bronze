@@ -100,7 +100,7 @@ export class Game {
         this.scheduler = new Scheduler.Simple();
 
         this.spawner = new Spawner(this, this.map, 5, 5);
-        let startingBiome = this.map.biomes.find( i => i.name === "lightForest");
+        let startingBiome = this.map.biomes.find( i => i.name === "forest");
         this.startingPoint = startingBiome.center;
 
         // let startingPoint = this.spawner.getStartPoint();

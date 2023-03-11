@@ -95,17 +95,19 @@ export class Spawner implements Actor {
     getSpawnTable(pos:Point):SpawnTable {
         // TODO look up by biome
         let biome = this.map.getTileBiome(pos.x, pos.y);
-        if (biome.name === "lightForest") {
+        if (biome.name === "forest") {
             return [Spawner.quail,
                 Spawner.quail,
                 Spawner.squirrel,
                 Spawner.squirrel,
+                Spawner.deer,
                 Spawner.rabbit]    
         } else if (biome.name === "steppe") {
             return [Spawner.grouse,
                 Spawner.grouse,
                 Spawner.squirrel,
                 Spawner.quail,
+                Spawner.fox,
                 Spawner.hare]    
         } else if (biome.name === "grasslands") {
             return [Spawner.grouse,
@@ -116,9 +118,10 @@ export class Spawner implements Actor {
             return [Spawner.grouse,
                 Spawner.quail,
                 Spawner.rabbit,
-                Spawner.rabbit,
+                Spawner.hare,
+                Spawner.fox,
                 Spawner.boar]        
-        } else if (biome.name === "darkForest") {
+        } else if (biome.name === "taiga") {
             return [Spawner.partridge,
                     Spawner.deer,
                     Spawner.deer,

@@ -421,9 +421,9 @@ export class Player implements Actor {
     updateVis(): void {
         for (let spawn of this.game.spawner.spawns) {
             let dist = this.visDist(spawn.position);
-            let threshold = 4 + this.visDistBonus;
+            let threshold = 5 + this.visDistBonus;
             if (this.listening) {
-                threshold = 7 + this.listenBonus
+                threshold = 8 + this.listenBonus
             }
             if (dist <= threshold) {
                 if (spawn.type == ActorType.Critter) {

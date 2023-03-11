@@ -69,7 +69,7 @@ export class WorldMap {
     validateBiomes(): boolean {
         let counts = _.countBy(this.biomes, b => b.name)
         console.log("counts",counts);
-        if (!counts["lightForest"]) {
+        if (!counts["forest"]) {
             return false;
         } else if (!counts["steppe"]) {
             return false;
@@ -77,7 +77,7 @@ export class WorldMap {
             return false;
         } else if (!counts["scrublands"]) { 
             return false;
-        } else if (!counts["darkForest"]) {
+        } else if (!counts["taiga"]) {
             return false;
         }
         return true
