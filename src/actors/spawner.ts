@@ -31,7 +31,7 @@ export class Spawner implements Actor {
         if (this.spawns.includes(a)) {
             let idx = this.spawns.indexOf(a);
             this.spawns.splice(idx,1);
-            this.game.removeActor(a);
+            // this.game.removeActor(a);
             // console.log("despawned", a);
         }
     }
@@ -82,7 +82,7 @@ export class Spawner implements Actor {
                 let critter = spawner(this.game, spawn_pos);
                 // let critter = new Critter(this.game, "bird", spawn_pos, new Glyph("b"));
                 this.spawns.push(critter);
-                this.game.addActor(critter);
+                // this.game.addActor(critter);
             }
             // console.log("at maximum spawns:", this.spawns)
             this.phase = 0;

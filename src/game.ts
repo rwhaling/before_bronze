@@ -8,23 +8,23 @@ import { GameState } from "./game-state";
 import { Actor, ActorType } from "./actors/actor";
 import { Point } from "./point";
 import { Glyph } from "./glyph";
-import { ActionLine } from "./ui/action-line";
-import { StatusLine } from "./status-line";
-import { MessageLog } from "./message-log";
-import { InputUtility } from "./input-utility";
+import { UI } from "./ui/ui"
+import { MessageLog } from "./ui/message-log";
+import { InputUtility } from "./ui/input-utility";
 import { Tile, TileType } from "./tile";
 import { WorldMap } from "./mapgen/world-map";
 import { Spawner } from "./actors/spawner";
 import * as _ from "lodash";
 import { Biome } from "./mapgen/voronoi";
 import { Critter, Vis } from "./actors/critter";
+import { Menu } from "./menu";
 
 export class Game {
     private display: Display;
-    private scheduler: Simple;
+    // private scheduler: Simple;
     private map: WorldMap;
-    private statusLine: StatusLine;
-    private actionLine: ActionLine;
+    // private statusLine: StatusLine;
+    // private actionLine: ActionLine;
     messageLog: MessageLog;
     debugMode: boolean
 
@@ -36,23 +36,18 @@ export class Game {
     private gameSize: { width: number, height: number };
     mapSize: { width: number, height: number };
     mapScale: { width: number, height: number };
-    private actionLinePosition: Point;
-    private statusLinePosition: Point;
-    private actionLogPosition: Point;
     gameState: GameState;
 
     private foregroundColor = "white";
     private backgroundColor = "#084081";
-    private maximumBoxes = 10;
+
+    private ui: UI
 
     constructor() {
         this.gameSize = { width: 120, height: 60 };
         
         this.mapSize = { width: this.gameSize.width, height: this.gameSize.height - 8 };
         this.mapScale = { width: 4, height: 3}
-        this.actionLinePosition = new Point(0, this.gameSize.height - 8);
-        this.statusLinePosition = new Point(0, this.gameSize.height - 7);
-        this.actionLogPosition = new Point(0, this.gameSize.height - 6);
 
         this.debugMode = false;
 
@@ -63,6 +58,9 @@ export class Game {
             fg: this.foregroundColor,
             bg: "#084081"
         });
+
+        this.ui = new UI(this, this.display, this.gameSize.width, this.gameSize.height);
+
         document.body.appendChild(this.display.getContainer());
         console.log(document.body);
         console.log(this.display.getContainer());
@@ -77,9 +75,9 @@ export class Game {
 
         this.gameState = new GameState();
         this.map = new WorldMap(this);
-        this.actionLine = new ActionLine(this, this.actionLinePosition, this.gameSize.width)
-        this.statusLine = new StatusLine(this, this.statusLinePosition, this.gameSize.width, { maxBoxes: this.maximumBoxes });
-        this.messageLog = new MessageLog(this, this.actionLogPosition, this.gameSize.width, 6);
+        this.messageLog = this.ui.messageLog;// HACK
+
+        // todo: bring up main menu first, do not initialize
 
         this.initializeGame();
         this.mainLoop();
@@ -89,44 +87,61 @@ export class Game {
         this.display.clear();
 
         this.messageLog.clear();
-        // if (!this.gameState.isGameOver() || this.gameState.doRestartGame()) {
-        // }
+
         this.gameState.reset();
         this.resetStatusLine();
         this.writeHelpMessage();
 
         this.map.generateMap(this.mapSize.width * 3, this.mapSize.height * 4);
 
-        this.scheduler = new Scheduler.Simple();
+        // this.scheduler = new Scheduler.Simple();
 
         this.spawner = new Spawner(this, this.map, 5, 5);
         let startingBiome = this.map.biomes.find( i => i.name === "forest");
         this.startingPoint = startingBiome.center;
 
-        // let startingPoint = this.spawner.getStartPoint();
-
         this.player = new Player(this, this.startingPoint);
-        // spawn town
+
         this.town = new Town(this, this.map, startingBiome, startingBiome.randPoint);
 
-        // this.createBeings();
-        this.scheduler.add(this.player, true);
-        this.scheduler.add(this.spawner, true);
+        // this.scheduler.add(this.player, true);
+        // this.scheduler.add(this.spawner, true);
 
         this.drawPanel();
     }
 
+    private async mainLoop(): Promise<any> {
+        while (true) {
+            if (!this.gameState.currentMenu) {
+                await this.mainTurn();
+            }
+
+            if (this.gameState.currentMenu) {
+                this.drawPanel();
+                let code = await this.modalTurn(this.gameState.currentMenu);
+
+                console.log("back to main loop",code);
+            }
+        }
+    }    
+
+    private async mainTurn(): Promise<any> {
+        this.player.updateVis();
+        this.drawPanel();
+        await this.player.act();
+        this.ui.statusLine.turns += 1;
+        for (let spawn of this.spawner.spawns) {
+            await spawn.act();
+        }
+        await this.spawner.act();
+    }
+
+    private async modalTurn(menu:Menu): Promise<any> {
+        this.ui.drawMenu(menu);
+        let code = await InputUtility.waitForInput(this.handleMenuInput.bind(this));
+        return code
+    }
     
-    draw(position: Point, glyph: Glyph, bg?: string, fg?: string): void {
-        let foreground = fg || glyph.foregroundColor || this.foregroundColor;
-        let background = bg || glyph.backgroundColor || this.backgroundColor;
-        this.display.draw(position.x, position.y, glyph.character, foreground, background);
-    }
-
-    drawText(position: Point, text: string, maxWidth?: number): void {
-        this.display.drawText(position.x, position.y, text, maxWidth);
-    }
-
     mapIsPassable(x: number, y: number): boolean {
         if (this.player.position.x === x && this.player.position.y === y) {
             return false;
@@ -222,7 +237,7 @@ export class Game {
                 tmp = c
             }
         }
-        console.log("nearest camp,", tmp,min);
+        // console.log("nearest camp,", tmp,min);
         return [tmp,min]
     }
 
@@ -233,164 +248,27 @@ export class Game {
     toggleZoom(): void {
         let pos = this.getPlayerPosition();
         if (this.map.isZoomed()) {
-            // console.log("zooming out at ",pos);
             this.map.zoomOut(pos);
         } else {
-            // console.log("zooming in at",pos);
             this.map.zoomIn(pos);
-        }
-    }
-
-    addActor(a:Actor) {
-        this.scheduler.add(a,true);
-    }
-
-    removeActor(a:Actor) {
-        this.scheduler.remove(a);
-    }
-
-    private async mainLoop(): Promise<any> {
-        let actor: Actor;
-        while (true) {
-            if (!this.gameState.currentMenu) {
-                actor = this.scheduler.next();
-                if (!actor) {
-                    break;
-                }
-                if (actor.type === ActorType.Player ) {
-                    this.player.updateVis();
-                    this.drawPanel();                
-                }         
-                await actor.act();
-                if (actor.type === ActorType.Player) {
-                    this.statusLine.turns += 1;
-                    this.drawPanel();
-                } else if (actor.type === ActorType.Spawner) {
-                    // console.log("spawner turn done, skipping rendering");
-                    continue;
-                }
-            }
-
-            // this.drawPanel();
-
-            if (this.gameState.currentMenu) {
-                let menu = this.gameState.currentMenu;
-                let l_offset = (this.mapSize.width / 2) - (menu.width / 2)
-                console.log("drawing menu",menu);
-                this.drawBox(l_offset,8,menu.width,30,"black");
-                let offset = 1;
-                // let t = padCenter(menu.text, 20, "");
-                for (let line of menu.text.split("\n")) {
-                    this.display.drawText(l_offset + 4, 8 + offset, `%b{black}%c{white}${line}`)                
-                    offset += 1
-                }
-                // let t = Util.format("%b{black}%s", menu.text)
-                // this.display.drawText(45, 8, t);
-                let i = 0
-                offset += 1
-                for (let i = 0; i < menu.selections.length; i++) {
-                    let m = menu.selections[i];
-
-                    if (i == menu.currentSelection) {
-                        let t = `%b{yellow}%c{black} * ${m.text}`
-                        this.display.drawText(l_offset + 6, 8 + offset, t);                            
-                    } else {
-                        let t = Util.format("%b{black}- %s", m.text)
-                        this.display.drawText(l_offset + 6, 8 + offset, t);
-                    }
-                    offset += 1;
-                }
-
-
-                await InputUtility.waitForInput(this.handleMenuInput.bind(this));
-                console.log("back to main loop");
-                this.drawPanel(); // ugly
-                // this.gameState.currentMenu = null;
-            }
-
-            // if (this.gameState.isGameOver()) {
-            //     await InputUtility.waitForInput(this.handleInput.bind(this));
-            //     this.initializeGame();
-            // }
-        }
-    }
-
-    private drawBox(x,y,width,height,color?): void {
-        console.log("drawing box");
-        let c = color || "#FFFFFF";
-        for (let i = 0; i < width; i++) {
-            for (let j = 0; j < height; j++) {
-                this.display.draw(x + i, y + j," ",c,c);
-            }
         }
     }
 
     private drawPanel(): void {
         this.display.clear();
         let playerpos = this.player.position;
-        this.map.draw(playerpos);
-        let center = new Point(Math.floor(this.mapSize.width / 2), Math.floor(this.mapSize.height / 2));
+        // this.map.draw(playerpos);
         if (this.map.isZoomed()) {
-            let scaled_town_delta = new Point(this.town.position.x - playerpos.x, this.town.position.y - playerpos.y);
-            let scaled_town_pos = new Point(center.x + scaled_town_delta.x, center.y + scaled_town_delta.y);
-
-
-            for (let s of this.spawner.spawns) {
-                let scaled_spawn_delta = new Point(s.position.x - playerpos.x, s.position.y - playerpos.y);
-                let scaled_spawn_pos = new Point(center.x + scaled_spawn_delta.x, center.y + scaled_spawn_delta.y);
-                let spawn_bg = this.map.getTileBiome(s.position.x, s.position.y).baseColor;
-                let c = s as Critter
-                if (this.player.target === c && c.vis === Vis.Seen) {
-                    spawn_bg = "black"
-                }
-                if (c.vis === Vis.Seen || this.debugMode) {
-                    this.draw(scaled_spawn_pos, s.glyph, spawn_bg);
-                }
-            }
-
-            let townbg = this.map.getTileBiome(this.town.position.x, this.town.position.y).baseColor;
-            this.draw(scaled_town_pos, this.town.glyph, townbg);
-
-            for (let c of this.town.camps) {
-                if (c.discovered) {
-                    let scaled_camp_delta = new Point(c.position.x - playerpos.x, c.position.y - playerpos.y)
-                    let scaled_camp_pos = new Point(center.x + scaled_camp_delta.x, center.y + scaled_camp_delta.y)
-                    let campBg = this.map.getTileBiome(c.position.x, c.position.y).baseColor;
-                    this.draw(scaled_camp_pos, this.town.campGlyph, campBg);    
-                }    
-            }
-
-
-            let scaled_player_pos = this.map.getZoomedPlayerPos(playerpos);
-            let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y).baseColor;
-            let playerfg = "white"
-            if (this.player.hidden) {
-                playerfg = "black";
-            }
-            this.draw(center, this.player.glyph, playerbg, playerfg);    
-
+            this.map.drawZoomed(this.ui, this.player)
+            this.ui.drawMapZoomed(this.map, this.player, this.spawner.spawns as Array<Critter>, this.town, this.town.camps)
         } else {
-            let scaled_town_pos = this.map.mapToGameScale(this.town.position);
-            // console.log("town pos",this.town.position, "scaled:",scaled_town_pos);
-            let townbg = this.map.getTileBiome(this.town.position.x, this.town.position.y).baseColor;
-            this.draw(scaled_town_pos, this.town.glyph, townbg);
-            for (let c of this.town.camps) {
-                if (c.discovered) {
-                    let scaled_camp_pos = this.map.mapToGameScale(c.position);
-                    let campBg = this.map.getTileBiome(c.position.x, c.position.y).baseColor;
-                    this.draw(scaled_camp_pos, this.town.campGlyph, campBg);    
-                }    
-            }
-
-            let scaled_player_pos = this.map.mapToGameScale(playerpos);
-            let playerbg = this.map.getTileBiome(playerpos.x,playerpos.y).baseColor;
-            this.draw(scaled_player_pos, this.player.glyph, playerbg); 
-            
+            this.map.drawMacro(this.ui, this.player)
+            this.ui.drawMapMacro(this.map, this.player, this.spawner.spawns as Array<Critter>, this.town, this.town.camps)            
         }
 
-        this.actionLine.draw();
-        this.statusLine.draw();
-        this.messageLog.draw();
+        this.ui.actionLine.draw(this.player);
+        this.ui.statusLine.draw(this.player);
+        this.ui.messageLog.draw();
     }
 
     private handleMenuInput(event: KeyboardEvent): boolean {
@@ -420,11 +298,6 @@ export class Game {
         return true;
     }
 
-    private handleInput(event: KeyboardEvent): boolean {
-        let code = event.keyCode;
-        return code === KEYS.VK_SPACE || code === KEYS.VK_RETURN;
-    }
-
     private writeHelpMessage(): void {
         let helpMessage = [
             'Press 0 for more detailed help at any time.',
@@ -433,11 +306,11 @@ export class Game {
         ];
 
         for (let index = helpMessage.length - 1; index >= 0; --index) {
-            this.messageLog.appendText(helpMessage[index]);
+            this.ui.messageLog.appendText(helpMessage[index]);
         }
     }
 
     private resetStatusLine(): void {
-        this.statusLine.reset();
+        this.ui.statusLine.reset();
     }
 }

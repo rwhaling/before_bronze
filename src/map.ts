@@ -46,11 +46,11 @@ export class Map {
         return this.coordinatesToKey(x, y) in this.map;
     }
 
-    draw(): void {
-        for (let key in this.map) {
-            this.game.draw(this.keyToPoint(key), this.map[key].glyph);
-        }
-    }
+    // draw(): void {
+    //     for (let key in this.map) {
+    //         this.game.draw(this.keyToPoint(key), this.map[key].glyph);
+    //     }
+    // }
 
     private coordinatesToKey(x: number, y: number): string {
         return x + "," + y;

@@ -1,5 +1,12 @@
 import { Menu } from "./menu";
 
+enum State {
+    MainMenu,
+    ZoomedMap,
+    MacroMap,
+    GameOver,
+}
+
 export class GameState {
     initialized: boolean;
     cheatCount: number;

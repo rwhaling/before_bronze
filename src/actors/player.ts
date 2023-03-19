@@ -6,7 +6,7 @@ import { Menu } from "../menu";
 
 import { Point } from "../point";
 import { Glyph } from "../glyph";
-import { InputUtility } from "../input-utility";
+import { InputUtility } from "../ui/input-utility";
 import * as _ from "lodash";
 import { Biome } from "../mapgen/voronoi";
 
@@ -451,7 +451,6 @@ export class Player implements Actor {
         helpMessage += "SCOUT offers you upgrades if you find a particular distant camp site,\n"
         helpMessage += "TRADE offers you upgrades for free after exchanging enough loot.\n\n"
         helpMessage += "If you die, you can CHEAT to continue, or turn on DEBUG MODE below.\n"
-
 
         this.game.gameState.currentMenu = new Menu(80,30, helpMessage, 0, [
             {text: "OK (PRESS RETURN)", result: {}},

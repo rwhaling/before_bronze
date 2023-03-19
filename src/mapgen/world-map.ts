@@ -8,6 +8,8 @@ import { noise2 } from "./perlin";
 import { lighten, darken } from "../color"
 import { Biome, mkBiomes, mkCells } from "./voronoi";
 import * as _ from "lodash";
+import { UI } from "../ui/ui";
+import { Player } from "../actors/player";
 
 export class WorldMap {
     private map: { [key: string]: Tile };
@@ -39,7 +41,7 @@ export class WorldMap {
         console.log("validating map");
         let valid = this.validateBiomes();
         while (!valid) {
-            console.log("WARNING: regenerating map")
+            console.log("warning: regenerating map")
             this.cells = mkCells(width,height);
             this.biomes = mkBiomes(this.cells,width,height);
             valid = this.validateBiomes();
@@ -190,54 +192,57 @@ export class WorldMap {
         }
     }
 
-    draw(playerpos: Point): void {
-        if (!this._isZoomed) {
-            for (let x = 0; x < this.mapSize.width; x+= 1) {
-                for (let y = 0; y < this.mapSize.height; y += 1) {
-                    let key = this.coordinatesToKey(x, y);
-                    let screen_pos = new Point(x,y);
-                    let map_pos = this.gameToMapScale(screen_pos);
-                    let player_map_pos = this.mapToGameScale(playerpos);
+    drawMacro(ui:UI, player:Player): void {
+        let playerpos = player.position;
+        for (let x = 0; x < this.mapSize.width; x+= 1) {
+            for (let y = 0; y < this.mapSize.height; y += 1) {
+                let key = this.coordinatesToKey(x, y);
+                let screen_pos = new Point(x,y);
+                let map_pos = this.gameToMapScale(screen_pos);
+                let player_map_pos = this.mapToGameScale(playerpos);
 
-                    let biome = this.getTileBiome(map_pos.x,map_pos.y);
+                let biome = this.getTileBiome(map_pos.x,map_pos.y);
 
-                    let glyph = Tile.floor.glyph;
-                    if (biome.isOcean() || biome.isMountains()) {
-                        glyph = Tile.blank.glyph;
-                    }
-
-                    let dist = this.visDist(x, y, player_map_pos.x, player_map_pos.y);
-                    let dist_adj = this.getMapShade(x, y, dist);
-
-                    let bg = biome.baseColor;
-                    if (dist_adj > 5) {
-                        bg = darken(bg, 8 * (dist_adj - 5)).toString();
-                    }
-                    let fg = bg;
-        
-                    this.game.draw(screen_pos, glyph, bg, fg);
+                let glyph = Tile.floor.glyph;
+                if (biome.isOcean() || biome.isMountains()) {
+                    glyph = Tile.blank.glyph;
                 }
-            }    
-        } else if (this._isZoomed) {
-            let offset = new Point(playerpos.x - (this.mapSize.width / 2), playerpos.y - (this.mapSize.height / 2));
 
-            for (let x = 0; x < this.mapSize.width; x+= 1) {
-                for (let y = 0; y < this.mapSize.height; y += 1) {
-                    let key = this.coordinatesToKey(x, y);
-                    let map_pos = new Point(x + offset.x, y + offset.y);
-                    let screen_pos = new Point(x,y);
-                    let biome = this.getTileBiome(map_pos.x,map_pos.y);
+                let dist = this.visDist(x, y, player_map_pos.x, player_map_pos.y);
+                let dist_adj = this.getMapShade(x, y, dist);
 
-                    let glyph = Tile.floor.glyph;
-                    if (biome.isOcean() || biome.isMountains()) {
-                        glyph = Tile.blank.glyph;
-                    }
-
-                    let bg = biome.baseColor;
-                    let fg = biome.fg;
-        
-                    this.game.draw(screen_pos, glyph, bg, fg);
+                let bg = biome.baseColor;
+                if (dist_adj > 5) {
+                    bg = darken(bg, 8 * (dist_adj - 5)).toString();
                 }
+                let fg = bg;
+    
+                ui.draw(screen_pos, glyph, bg, fg);
+            }
+        }    
+    }
+
+    drawZoomed(ui:UI, player: Player): void {
+        let playerpos = player.position;
+
+        let offset = new Point(playerpos.x - (this.mapSize.width / 2), playerpos.y - (this.mapSize.height / 2));
+
+        for (let x = 0; x < this.mapSize.width; x+= 1) {
+            for (let y = 0; y < this.mapSize.height; y += 1) {
+                let key = this.coordinatesToKey(x, y);
+                let map_pos = new Point(x + offset.x, y + offset.y);
+                let screen_pos = new Point(x,y);
+                let biome = this.getTileBiome(map_pos.x,map_pos.y);
+
+                let glyph = Tile.floor.glyph;
+                if (biome.isOcean() || biome.isMountains()) {
+                    glyph = Tile.blank.glyph;
+                }
+
+                let bg = biome.baseColor;
+                let fg = biome.fg;
+    
+                ui.draw(screen_pos, glyph, bg, fg);
             }
         }
     }
